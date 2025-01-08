@@ -1,0 +1,30 @@
+.data-plans-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .content {
+    display: flex;
+    flex: 1;
+  }
+  
+  .main-content {
+    padding: 20px;
+    margin-left: 250px; /* Sidebar width */
+    margin-top: 56px; /* Navbar height */
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+  }
+  
+  .card img {
+    max-height: 200px;
+    object-fit: cover;
+    border-bottom: 2px solid var(--border-primary);
+  }
+  
+  h1 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+  

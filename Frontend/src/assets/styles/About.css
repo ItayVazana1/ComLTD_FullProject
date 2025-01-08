@@ -1,0 +1,35 @@
+.about-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .content {
+    display: flex;
+    flex: 1;
+  }
+  
+  .main-content {
+    padding: 20px;
+    margin-left: 250px; /* Sidebar width */
+    margin-top: 56px; /* Navbar height */
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+  
+  .rectangle-container img {
+    max-height: 80px;
+    object-fit: cover;
+  }
+  
+  .our-story p {
+    line-height: 1.8;
+    margin-top: 20px;
+  }
+  
+  .our-partners h6 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+  }
+  

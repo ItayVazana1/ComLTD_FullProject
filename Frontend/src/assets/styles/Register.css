@@ -1,0 +1,154 @@
+/* עיצוב כולל לדף */
+.registration-page {
+  height: 100%;
+  min-height: 100vh; /* התאמה לגובה מלא */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #0f2c33, #efa00f); /* צבע רקע */
+}
+
+/* עיצוב הקונטיינר */
+.registration-page .container {
+  max-width: 800px; /* רוחב מקסימלי לקונטיינר */
+  width: 100%; /* שימוש ברוב הרוחב */
+  background-color: #fff; /* צבע רקע של הקונטיינר */
+  padding: 40px; /* ריווח פנימי */
+  border-radius: 10px; /* עיגול פינות */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* צל */
+}
+
+/* כותרת הקונטיינר */
+.registration-page .container .title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  text-align: center; /* מיקום הכותרת במרכז */
+}
+
+/* עיצוב הטופס */
+.registration-page form {
+  max-width: 100%; /* הטופס יתפרס על כל הרוחב */
+  width: 100%;
+  margin: 0; /* הסרת ריווח חיצוני */
+}
+
+/* פרטי המשתמש */
+.registration-page .user-details {
+  display: flex;
+  flex-wrap: wrap; /* מאפשר שדות להישבר לשורה חדשה */
+  gap: 20px; /* ריווח בין השדות */
+}
+
+/* עיצוב שדות הטופס */
+.registration-page .user-details .input-box {
+  width: calc(50% - 10px); /* כל שדה יתפוס חצי שורה */
+  margin-bottom: 15px;
+}
+
+.registration-page .user-details .input-box input {
+  height: 50px;
+  width: 100%;
+  padding: 0 15px; /* ריווח פנימי */
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+/* כותרת השדה */
+.registration-page .user-details .input-box span.details {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+/* עיצוב אפשרויות המגדר */
+.registration-page .gender-details {
+  margin-top: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.registration-page .gender-details .gender-title {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.registration-page .gender-details .category {
+  display: flex;
+  gap: 15px;
+}
+
+.registration-page .gender-details .category label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.registration-page .gender-details .category input[type="radio"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* כפתור הרשמה וכפתור חזרה */
+.registration-page .subButton input{
+  height: 50px;
+  width: 100%;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 30px;
+  background: linear-gradient(135deg, #06393b, #0d7556);
+  border: none;
+}
+
+.registration-page .logButton input {
+  height: 50px;
+  width: 100%;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 30px;
+  background: linear-gradient(135deg, #252152, #583818);
+  border: none;
+}
+
+
+.registration-page .subButton input:hover,
+.registration-page .logButton input:hover {
+  background: linear-gradient(-135deg, #533946, #e6d1b4);
+}
+
+/* עיצוב ה-checkbox */
+.validBox {
+  display: flex;
+  justify-content: flex-start; /* הסימון בצד שמאל */
+  align-items: center; /* יישור טקסט אנכי */
+  margin-top: 15px;
+}
+
+.validBox .checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* ריווח בין הסימון לטקסט */
+}
+
+.validBox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0; /* ביטול ריווח נוסף */
+}
+
+
+/* התאמות למסכים קטנים */
+@media (max-width: 768px) {
+  .registration-page .user-details .input-box {
+      width: 100%; /* במסכים קטנים, כל שדה יתפרס על כל השורה */
+  }
+}

@@ -1,0 +1,103 @@
+/* עיצוב כולל לדף */
+.login-page {
+    height: 100%;
+    min-height: 100vh; /* התאמה לגובה מלא */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #0f2c33, #efa00f); /* צבע רקע */
+}
+
+/* עיצוב הקונטיינר */
+.login-page .container {
+    max-width: 600px; /* רוחב מקסימלי לקונטיינר */
+    width: 100%; /* שימוש ברוב הרוחב */
+    background-color: #fff; /* צבע רקע של הקונטיינר */
+    padding: 40px; /* ריווח פנימי */
+    border-radius: 10px; /* עיגול פינות */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* צל */
+}
+
+/* כותרת הקונטיינר */
+.login-page .container .title {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 30px;
+    text-align: center; /* מיקום הכותרת במרכז */
+}
+
+/* עיצוב הטופס */
+.login-page form {
+    max-width: 100%; /* הטופס יתפרס על כל הרוחב */
+    width: 100%;
+    margin: 0; /* הסרת ריווח חיצוני */
+}
+
+/* פרטי המשתמש */
+.login-page .user-details {
+    display: flex;
+    flex-direction: column; /* שדות בטור */
+    gap: 20px; /* ריווח בין השדות */
+}
+
+/* עיצוב שדות הטופס */
+.login-page .user-details .input-box {
+    width: 100%; /* כל שדה יתפרס על שורה שלמה */
+}
+
+.login-page .user-details .input-box input {
+    height: 50px;
+    width: 100%;
+    padding: 0 15px; /* ריווח פנימי */
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* כותרת השדה */
+.login-page .user-details .input-box span.details {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* עיצוב ה-checkbox */
+.validBox {
+    display: flex;
+    justify-content: flex-start; /* הסימון בצד שמאל */
+    align-items: center; /* יישור טקסט אנכי */
+    margin-top: 15px;
+}
+
+.validBox .checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* ריווח בין הסימון לטקסט */
+}
+
+.validBox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0; /* ביטול ריווח נוסף */
+}
+
+/* כפתורים */
+.login-page .subButton input,
+.login-page .logButton input {
+    height: 50px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #2e9ca0, #21616a);
+    border: none;
+}
+
+.login-page .subButton input:hover,
+.login-page .logButton input:hover {
+    background: linear-gradient(-135deg, #533946, #e6d1b4);
+}

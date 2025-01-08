@@ -1,0 +1,36 @@
+/* Sidebar Styles */
+#sidebar {
+    position: fixed;
+    top: 56px; /* Matches the Navbar height */
+    left: 0;
+    width: 250px; /* Sidebar width */
+    height: calc(100vh - 56px); /* Full height minus Navbar */
+    overflow-y: auto; /* Internal scroll if content exceeds */
+    background-color: var(--background-primary); /* Updated background color */
+    z-index: 1020; /* Ensure it appears under the Navbar */
+}
+
+/* Sidebar navigation links */
+#sidebar .nav-link {
+    color: var(--text-secondary); /* Updated link color */
+    padding: 10px; /* Spacing around the link */
+    border-radius: 5px; /* Rounded corners for better design */
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+/* Hover effect for navigation links */
+#sidebar .nav-link:hover {
+    background-color: var(--highlight-primary); /* Updated highlight color on hover */
+    color: var(--text-secondary); /* Ensure text remains readable */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    #sidebar {
+        width: 200px; /* Reduce Sidebar width on smaller screens */
+    }
+
+    #sidebar .nav-link {
+        font-size: 14px; /* Slightly smaller font size */
+    }
+}

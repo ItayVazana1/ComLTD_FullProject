@@ -1,0 +1,44 @@
+.contact-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--background-dark);
+  }
+  
+  .content {
+    display: flex;
+    flex: 1;
+  }
+  
+  h1.display-4 {
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  
+  form {
+    background-color: #f8f9fa; /* צבע רקע */
+    border-radius: 10px; /* עיגול פינות */
+    padding: 40px; /* ריווח פנימי */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* צל עדין */
+    max-width: 600px; /* רוחב מקסימלי */
+    width:400px; /* התאמה לרוחב */
+    margin: 0 auto; /* מרכז את הטופס */
+  }
+  
+  form .form-control {
+    border-radius: 5px;
+  }
+  
+  form button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+  }
+  
+  section.text-center {
+    margin-bottom: 50px;
+  }
+  
+  textarea {
+    resize: none; /* מניעת שינוי גודל */
+  }

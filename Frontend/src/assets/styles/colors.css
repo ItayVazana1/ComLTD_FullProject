@@ -1,0 +1,16 @@
+:root {
+    /* Background Colors */
+    --background-primary: #533946; /* Main background */
+    --background-secondary: #E6D1B4; /* Light background for sections */
+    --background-accent: #21616A; /* Highlighted background */
+    --background-dark: #073137; /* Dark background */
+
+    /* Text Colors */
+    --text-primary: #0F2C33; /* Main text color */
+    --text-secondary: #E6D1B4; /* Light text color */
+    --text-placeholder: silver; /* Placeholder color */
+
+    /* Border and Highlight Colors */
+    --border-primary: #2E9CA0; /* Borders */
+    --highlight-primary: #0f3f45; /* Links and hover effects */
+}

@@ -1,0 +1,58 @@
+/* Navbar Styles */
+header.navbar {
+    display: flex;
+    justify-content: space-between; /* חלוקה בין התוכן (חיפוש וכפתור) */
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1030;
+    background-color: var(--background-accent); /* צבע רקע */
+    color: var(--text-secondary); /* צבע טקסט */
+    padding: 10px 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* צל קל */
+}
+
+/* Search bar inside the Navbar */
+header.navbar input[type="text"] {
+    width: 250px;
+    border: 1px solid var(--text-secondary); /* צבע גבול */
+    border-radius: 5px;
+    padding: 5px 10px;
+    color: var(--text-secondary); /* צבע טקסט */
+    background-color: var(--text-primary); /* צבע רקע */
+}
+
+/* Placeholder styling for the search bar */
+header.navbar input[type="text"]::placeholder {
+    color: var(--text-secondary); /* צבע Placeholder */
+}
+
+/* Logout button styling */
+.logout-btn {
+    padding: 5px 15px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Hover effect for the Logout button */
+.logout-btn:hover {
+    background-color: var(--background-secondary); /* שינוי צבע בעת מעבר עכבר */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    header.navbar input[type="text"] {
+        width: 150px; /* תיבת חיפוש קטנה יותר במובייל */
+    }
+    .logout-btn {
+        font-size: 12px; /* כפתור קטן יותר */
+        padding: 5px 10px;
+    }
+}
