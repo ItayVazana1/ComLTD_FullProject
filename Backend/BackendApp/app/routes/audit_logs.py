@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from ..models.tables import AuditLog, User
 from ..models.database import get_db
 from ..utils.loguru_config import logger
+from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
 
 router = APIRouter()
 
@@ -32,10 +33,11 @@ def get_audit_log(log_id: str, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: Audit log details.
     """
-    logger.info(f"Fetching audit log with ID: {log_id}")
-    audit_log = db.query(AuditLog).filter(AuditLog.id == log_id).first()
+    sanitized_log_id = prevent_sql_injection(log_id)  # Prevents SQL Injection
+    logger.info(f"Fetching audit log with ID: {sanitized_log_id}")
+    audit_log = db.query(AuditLog).filter(AuditLog.id == sanitized_log_id).first()
     if not audit_log:
-        logger.warning(f"Audit log with ID {log_id} not found.")
+        logger.warning(f"Audit log with ID {sanitized_log_id} not found.")
         raise HTTPException(status_code=404, detail="Audit log not found")
     logger.debug(f"Fetched audit log details: {audit_log}")
     return audit_log
@@ -48,9 +50,10 @@ def get_audit_logs_by_user(user_id: str, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: List of audit logs for the user.
     """
-    logger.info(f"Fetching audit logs for user ID: {user_id}")
-    audit_logs = db.query(AuditLog).filter(AuditLog.user_id == user_id).all()
-    logger.debug(f"Fetched {len(audit_logs)} audit logs for user ID {user_id}.")
+    sanitized_user_id = sanitize_input(user_id)  # Protects against XSS
+    logger.info(f"Fetching audit logs for user ID: {sanitized_user_id}")
+    audit_logs = db.query(AuditLog).filter(AuditLog.user_id == sanitized_user_id).all()
+    logger.debug(f"Fetched {len(audit_logs)} audit logs for user ID {sanitized_user_id}.")
     return audit_logs
 
 @router.post("/")
@@ -61,15 +64,17 @@ def create_audit_log(audit_log: AuditLogCreate, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: Details of the created audit log.
     """
-    logger.info(f"Creating a new audit log for user ID: {audit_log.user_id}")
-    user = db.query(User).filter(User.id == audit_log.user_id).first()
+    sanitized_user_id = sanitize_input(audit_log.user_id)  # Protects against XSS
+    sanitized_action = sanitize_input(audit_log.action)  # Protects against XSS
+    logger.info(f"Creating a new audit log for user ID: {sanitized_user_id}")
+    user = db.query(User).filter(User.id == sanitized_user_id).first()
     if not user:
-        logger.warning(f"User with ID {audit_log.user_id} not found.")
+        logger.warning(f"User with ID {sanitized_user_id} not found.")
         raise HTTPException(status_code=404, detail="User not found")
 
     new_audit_log = AuditLog(
-        user_id=audit_log.user_id,
-        action=audit_log.action
+        user_id=sanitized_user_id,
+        action=sanitized_action
     )
     db.add(new_audit_log)
     db.commit()

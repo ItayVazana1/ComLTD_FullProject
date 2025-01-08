@@ -1,7 +1,8 @@
-import smtplib
+from smtplib import SMTP
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
+from decouple import config
+from ..utils.loguru_config import logger
 
 def send_email(recipient: list, subject: str, body: str):
     """
@@ -10,25 +11,34 @@ def send_email(recipient: list, subject: str, body: str):
     :param subject: Email subject.
     :param body: Email body.
     """
-    sender_email = os.getenv("EMAIL_SENDER")
-    sender_password = os.getenv("EMAIL_PASSWORD")
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", 587))
+    # Load environment variables using decouple
+    EMAIL_SENDER = config("EMAIL_SENDER")
+    EMAIL_PASSWORD = config("EMAIL_PASSWORD")
+    SMTP_SERVER = config("SMTP_SERVER", default="smtp.gmail.com")
+    SMTP_PORT = config("SMTP_PORT", default=587, cast=int)
 
-    if not sender_email or not sender_password:
+    # Validate essential configurations
+    if not EMAIL_SENDER or not EMAIL_PASSWORD:
+        logger.error("Sender email or password not set in environment variables.")
         raise ValueError("Sender email or password not set in environment variables.")
 
     try:
+        # Create the email
         msg = MIMEMultipart()
-        msg["From"] = sender_email
+        msg["From"] = EMAIL_SENDER
         msg["To"] = ", ".join(recipient)
         msg["Subject"] = subject
-
         msg.attach(MIMEText(body, "plain"))
 
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient, msg.as_string())
+        logger.info(f"Attempting to send email to {recipient}")
+
+        # Connect to the SMTP server
+        with SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()  # Secure the connection
+            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_SENDER, recipient, msg.as_string())
+            logger.info(f"Email successfully sent to {recipient}")
+
     except Exception as e:
+        logger.error(f"Failed to send email to {recipient}: {e}")
         raise RuntimeError(f"Failed to send email: {e}")

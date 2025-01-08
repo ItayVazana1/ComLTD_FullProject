@@ -8,6 +8,7 @@ from ..models.database import get_db
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
 from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
+from passlib.hash import bcrypt
 
 router = APIRouter()
 
@@ -30,11 +31,13 @@ class RegistrationRequest(BaseModel):
     password: str
     confirm_password: str
     accept_terms: bool
+    gender: str  # Added gender field
 
 class UpdateUserRequest(BaseModel):
     full_name: str = None
     phone_number: str = None
     email: EmailStr = None
+    gender: str = None  # Added gender field
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -47,21 +50,18 @@ class ResetPasswordRequest(BaseModel):
 # Endpoints
 @router.post("/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
+    # Handle user login by verifying credentials and returning an authentication token.
     logger.info(f"Login request received for: {request.username_or_email}")
     try:
-        sanitized_username_or_email = sanitize_input(request.username_or_email)
-        sanitized_password = sanitize_input(request.password)
+        sanitized_username_or_email = sanitize_input(request.username_or_email)  # Protects against XSS
+        sanitized_password = sanitize_input(request.password)  # Protects against XSS
 
         user = db.query(User).filter(
             (User.email == sanitized_username_or_email) | (User.username == sanitized_username_or_email)
         ).first()
 
-        if not user:
-            logger.warning(f"Login failed - user not found: {sanitized_username_or_email}")
-            raise HTTPException(status_code=401, detail="Invalid username or password")
-
-        if user.hashed_password != sanitized_password:
-            logger.warning(f"Login failed - incorrect password for user: {sanitized_username_or_email}")
+        if not user or not bcrypt.verify(sanitized_password, user.hashed_password):
+            logger.warning(f"Login failed for user: {sanitized_username_or_email}")
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         token = str(uuid4())
@@ -80,6 +80,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/register")
 def register(request: RegistrationRequest, db: Session = Depends(get_db)):
+    # Handle user registration by validating input, checking for existing users, and creating a new user.
     logger.info(f"Registration request received for: {request.username}")
     try:
         sanitized_username = sanitize_input(request.username)
@@ -98,33 +99,41 @@ def register(request: RegistrationRequest, db: Session = Depends(get_db)):
             logger.warning(f"Registration failed - user already exists: {sanitized_username}")
             raise HTTPException(status_code=400, detail="User with this email or username already exists")
 
+        hashed_password = bcrypt.hash(sanitized_password)
+
         new_user = User(
             full_name=request.full_name,
             username=sanitized_username,
             email=sanitized_email,
             phone_number=request.phone_number,
-            hashed_password=sanitized_password,
+            hashed_password=hashed_password,
             is_active=True,
             is_logged_in=False,
             current_token=None,
             last_login=None,
+            gender=request.gender
         )
         db.add(new_user)
         db.commit()
 
         create_audit_log_entry(user_id=new_user.id, action="User registration", db=db)
-        return {"status": "success", "message": "User registered successfully"}
+        return {
+            "status": "success",
+            "message": "User registered successfully",
+            "id": new_user.id  # Adding user ID to the response
+        }
 
     except Exception as e:
         db.rollback()
         logger.exception(f"Error during registration for {sanitized_username}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/users/{user_id}")
+@router.put("/{user_id}")
 def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(get_db)):
     logger.info(f"Update request received for user: {user_id}")
     try:
         sanitized_user_id = prevent_sql_injection(user_id)
+        logger.debug(f"Sanitized user ID: {sanitized_user_id}")
 
         user = db.query(User).filter(User.id == sanitized_user_id).first()
         if not user:
@@ -142,23 +151,27 @@ def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(
                 logger.warning(f"Email already in use: {sanitized_email}")
                 raise HTTPException(status_code=400, detail="Email already in use")
             user.email = sanitized_email
+        if request.gender:
+            user.gender = sanitize_input(request.gender)
 
         db.commit()
         db.refresh(user)
 
-        create_audit_log_entry(user_id=user.id, action="User details updated", db=db)
-        return {"status": "success", "message": "User updated successfully"}
+        logger.info(f"User updated successfully: {user_id}")
+        return {"status": "success", "message": "User updated successfully", "id": user_id}
 
     except Exception as e:
         db.rollback()
         logger.exception(f"Error updating user {sanitized_user_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/password-reset")
 def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
+    # Handle generating a password reset token for a user and saving it in the database.
     logger.info(f"Password reset request received for: {request.email}")
     try:
-        sanitized_email = sanitize_input(request.email)
+        sanitized_email = sanitize_input(request.email)  # Protects against XSS
 
         user = db.query(User).filter(User.email == sanitized_email).first()
         if not user:
@@ -187,9 +200,10 @@ def request_password_reset(request: PasswordResetRequest, db: Session = Depends(
 
 @router.post("/reset-password")
 def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    # Handle resetting a user's password using a valid reset token.
     logger.info(f"Password reset attempt with token: {request.reset_token}")
     try:
-        sanitized_reset_token = sanitize_input(request.reset_token)
+        sanitized_reset_token = sanitize_input(request.reset_token)  # Protects against XSS
         password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_reset_token).first()
 
         if not password_reset or password_reset.used:
@@ -200,8 +214,8 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
             logger.warning("Password reset token expired")
             raise HTTPException(status_code=400, detail="Token expired")
 
-        sanitized_new_password = sanitize_input(request.new_password)
-        sanitized_confirm_password = sanitize_input(request.confirm_password)
+        sanitized_new_password = sanitize_input(request.new_password)  # Protects against XSS
+        sanitized_confirm_password = sanitize_input(request.confirm_password)  # Protects against XSS
 
         if sanitized_new_password != sanitized_confirm_password:
             logger.warning("Passwords do not match")
@@ -212,7 +226,7 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
             logger.error("Associated user not found")
             raise HTTPException(status_code=404, detail="User not found")
 
-        user.hashed_password = sanitized_new_password
+        user.hashed_password = bcrypt.hash(sanitized_new_password)  # Securely hash new password
         password_reset.used = True
 
         db.commit()

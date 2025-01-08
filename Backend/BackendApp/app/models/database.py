@@ -1,7 +1,10 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
-from ..utils.config import DATABASE_URL
+from decouple import config  # Import directly from decouple
 from ..utils.loguru_config import logger
+
+# Load the DATABASE_URL from .env
+DATABASE_URL = config("DATABASE_URL")  # Fetch database URL from environment
 
 # Database engine initialization
 engine = create_engine(DATABASE_URL)

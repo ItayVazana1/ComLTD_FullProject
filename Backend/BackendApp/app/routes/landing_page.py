@@ -1,11 +1,12 @@
 import os
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from ..models.database import get_db
 from ..models.tables import AuditLog
 from ..utils.loguru_config import logger
 from ..utils.email import send_email
+from ..utils.attack_detectors import sanitize_input
 
 router = APIRouter()
 
@@ -26,9 +27,10 @@ def landing_page():
         <div class="container text-center mt-5">
             <h1 class="mb-4">Welcome to Communication LTD API</h1>
             <div class="d-grid gap-2 d-md-flex justify-content-center">
-                <button class="btn btn-primary me-md-2" onclick="location.href='/docs'">Documentation</button>
+                <button class="btn btn-primary me-md-2" onclick="location.href='/docs'">OpenAPI Documentation</button>
                 <button class="btn btn-secondary" onclick="location.href='/audit-logs-view'">Logs</button>
                 <button class="btn btn-success" onclick="location.href='/test-email'">Test Email</button>
+                <button class="btn btn-info" onclick="location.href='/redoc'">ReDoc Documentation</button>
             </div>
         </div>
     </body>
@@ -73,17 +75,18 @@ def send_test_email(email: str = Form(...)):
     Handle test email sending.
     :param email: Email address to send the test email to.
     """
+    sanitized_email = sanitize_input(email)  # Protects against XSS
     try:
         send_email(
-            recipient=[email],
+            recipient=[sanitized_email],
             subject="Test Email",
             body=f"This is a test email sent on {os.getenv('TIMEZONE', 'UTC')} time."
         )
-        logger.info(f"Test email sent to {email}")
-        return HTMLResponse(content=f"<h1>Test email successfully sent to {email}!</h1>")
+        logger.info(f"Test email sent to {sanitized_email}")
+        return HTMLResponse(content=f"<h1>Test email successfully sent to {sanitized_email}!</h1>")
     except Exception as e:
-        logger.error(f"Failed to send test email to {email}: {e}")
-        return HTMLResponse(content=f"<h1>Failed to send email to {email}. Check logs for details.</h1>")
+        logger.error(f"Failed to send test email to {sanitized_email}: {e}")
+        return HTMLResponse(content=f"<h1>Failed to send email to {sanitized_email}. Check logs for details.</h1>")
 
 @router.get("/audit-logs-view", response_class=HTMLResponse)
 def audit_logs_view():
@@ -151,7 +154,7 @@ def audit_logs_view():
     """
     return HTMLResponse(content=html_content)
 
-@router.get("/audit-logs-view-filter")
+@router.get("/audit-logs")
 def get_audit_logs(user_id: str = None, db: Session = Depends(get_db)):
     """
     Fetch Audit Logs, optionally filtered by User ID.
@@ -159,10 +162,11 @@ def get_audit_logs(user_id: str = None, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: List of audit logs.
     """
+    sanitized_user_id = sanitize_input(user_id) if user_id else None  # Protects against XSS
     logger.info("Fetching audit logs from the database.")
-    if user_id:
-        logs = db.query(AuditLog).filter(AuditLog.user_id == user_id).all()
-        logger.debug(f"Fetched {len(logs)} logs for User ID: {user_id}.")
+    if sanitized_user_id:
+        logs = db.query(AuditLog).filter(AuditLog.user_id == sanitized_user_id).all()
+        logger.debug(f"Fetched {len(logs)} logs for User ID: {sanitized_user_id}.")
     else:
         logs = db.query(AuditLog).all()
         logger.debug(f"Fetched {len(logs)} logs.")

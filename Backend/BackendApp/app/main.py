@@ -9,15 +9,19 @@ from .routes.audit_logs import router as audit_logs_router
 from .routes.landing_page import router as landing_page_router
 from .routes.contact_us import router as contact_us_router
 from .utils.loguru_config import logger
-from loguru import logger as llog
 
 
 def create_application() -> FastAPI:
     """
     Function to create the FastAPI application and include all routes and modules.
+    :return: Configured FastAPI application.
     """
-    logger.info("Initializing application...")
-    application = FastAPI(title="Communication LTD API", version="1.0.0")
+    logger.info("Initializing FastAPI application...")
+    application = FastAPI(
+        title="Communication LTD API",
+        version="1.0.0",
+        description="API for managing Communication LTD operations."
+    )
 
     # Include routers for all routes
     application.include_router(users_router, prefix="/users", tags=["Users"])
@@ -26,8 +30,8 @@ def create_application() -> FastAPI:
     application.include_router(audit_logs_router, prefix="/audit-logs", tags=["Audit Logs"])
     application.include_router(landing_page_router, tags=["Landing Pages"])
     application.include_router(contact_us_router, tags=["Contact Us"])
-    logger.info("Routes registered successfully.")
-    llog.info("This is a test log for Loguru!")
+
+    logger.info("Routes successfully registered.")
     return application
 
 
@@ -35,13 +39,23 @@ def initialize_database():
     """
     Function to load models, create tables, and populate initial data.
     """
-    logger.info("Starting table creation...")
-    load_models()
-    Base.metadata.create_all(bind=engine)
-    populate_packages()
-    logger.info("Table creation and data population completed.")
+    try:
+        logger.info("Starting database initialization...")
+        load_models()
+        Base.metadata.create_all(bind=engine)
+        populate_packages()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
 
 
-# Initialize database and application
-initialize_database()
-app = create_application()  # Ensure the 'app' variable is accessible
+# Main entry point for the application
+try:
+    logger.info("Starting application setup...")
+    initialize_database()
+    app = create_application()
+    logger.info("Application setup completed successfully.")
+except Exception as e:
+    logger.critical(f"Failed to start the application: {e}")
+    raise

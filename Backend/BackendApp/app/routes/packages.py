@@ -41,7 +41,7 @@ def get_packages(request: UserRequest, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: List of all packages.
     """
-    sanitized_user_id = sanitize_input(request.user_id)
+    sanitized_user_id = sanitize_input(request.user_id)  # Protects against XSS
     logger.info(f"Fetching all packages by user {sanitized_user_id}.")
     packages = db.query(Package).all()
     create_audit_log_entry(user_id=sanitized_user_id, action="Fetched all packages", db=db)
@@ -57,8 +57,8 @@ def get_package(request: UserRequest, package_id: str, db: Session = Depends(get
     :param db: Database session.
     :return: Package details.
     """
-    sanitized_user_id = sanitize_input(request.user_id)
-    sanitized_package_id = prevent_sql_injection(package_id)
+    sanitized_user_id = sanitize_input(request.user_id)  # Protects against XSS
+    sanitized_package_id = prevent_sql_injection(package_id)  # Prevents SQL Injection
     logger.info(f"Fetching package with ID {sanitized_package_id} by user {sanitized_user_id}.")
     package = db.query(Package).filter(Package.id == sanitized_package_id).first()
     if not package:
@@ -76,10 +76,10 @@ def create_package(package: PackageCreate, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: Details of the created package.
     """
-    sanitized_user_id = sanitize_input(package.user_id)
-    sanitized_package_name = sanitize_input(package.package_name)
-    sanitized_description = sanitize_input(package.description)
-    sanitized_monthly_price = int(package.monthly_price)
+    sanitized_user_id = sanitize_input(package.user_id)  # Protects against XSS
+    sanitized_package_name = sanitize_input(package.package_name)  # Protects against XSS
+    sanitized_description = sanitize_input(package.description)  # Protects against XSS
+    sanitized_monthly_price = int(package.monthly_price)  # Ensure numeric input
 
     logger.info(f"Creating a new package with name {sanitized_package_name} by user {sanitized_user_id}.")
     new_package = Package(
@@ -103,10 +103,10 @@ def update_package(package_id: str, package: PackageUpdate, db: Session = Depend
     :param db: Database session.
     :return: Updated package details.
     """
-    sanitized_package_id = prevent_sql_injection(package_id)
-    sanitized_user_id = sanitize_input(package.user_id)
-    sanitized_description = sanitize_input(package.description)
-    sanitized_monthly_price = int(package.monthly_price)
+    sanitized_package_id = prevent_sql_injection(package_id)  # Prevents SQL Injection
+    sanitized_user_id = sanitize_input(package.user_id)  # Protects against XSS
+    sanitized_description = sanitize_input(package.description)  # Protects against XSS
+    sanitized_monthly_price = int(package.monthly_price)  # Ensure numeric input
 
     logger.info(f"Updating package with ID {sanitized_package_id} by user {sanitized_user_id}.")
     db_package = db.query(Package).filter(Package.id == sanitized_package_id).first()
@@ -130,8 +130,8 @@ def delete_package(package_id: str, request: UserRequest, db: Session = Depends(
     :param db: Database session.
     :return: Confirmation of deletion.
     """
-    sanitized_package_id = prevent_sql_injection(package_id)
-    sanitized_user_id = sanitize_input(request.user_id)
+    sanitized_package_id = prevent_sql_injection(package_id)  # Prevents SQL Injection
+    sanitized_user_id = sanitize_input(request.user_id)  # Protects against XSS
 
     logger.info(f"Deleting package with ID {sanitized_package_id} by user {sanitized_user_id}.")
     db_package = db.query(Package).filter(Package.id == sanitized_package_id).first()

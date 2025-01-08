@@ -1,12 +1,19 @@
-from sqlalchemy import Column, String, Integer, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, Text, Boolean, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from uuid import uuid4
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
+from enum import Enum as PyEnum
 from ..utils.loguru_config import logger
 
 # Base for tables
 Base = declarative_base()
+
+# Enum for Gender
+class Gender(PyEnum):
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
 
 # User Table
 class User(Base):
@@ -22,6 +29,7 @@ class User(Base):
     is_logged_in = Column(Boolean, default=False)
     current_token = Column(String(255), nullable=True)
     last_login = Column(DateTime, nullable=True, default=datetime.utcnow)
+    gender = Column(Enum(Gender), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,6 +45,7 @@ class Customer(Base):
     phone_number = Column(String(20), nullable=True)
     email_address = Column(String(255), nullable=False)
     address = Column(String(255), nullable=True)
+    gender = Column(Enum(Gender), nullable=True)
 
     package_id = Column(String(36), ForeignKey("packages.id"), nullable=True)
     package = relationship("Package", back_populates="customers")
@@ -103,10 +112,8 @@ class ContactSubmission(Base):
         super().__init__(*args, **kwargs)
         logger.debug(f"ContactSubmission initialized: Name: {self.name}, Email: {self.email}")
 
-
 # Relationships for User Table
 User.audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
-
 
 # Password Reset Table
 class PasswordReset(Base):
@@ -123,7 +130,6 @@ class PasswordReset(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logger.debug(f"PasswordReset model initialized for User ID: {self.user_id}")
-
 
 # Relationship on the User Table
 User.password_resets = relationship(
