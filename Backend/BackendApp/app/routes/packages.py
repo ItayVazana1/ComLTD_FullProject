@@ -6,6 +6,10 @@ from pydantic import BaseModel
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
 from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
+from sqlalchemy.exc import SQLAlchemyError
+
+
+
 
 router = APIRouter()
 
@@ -33,7 +37,27 @@ class UserRequest(BaseModel):
     """
     user_id: str
 
-@router.get("/")
+
+class PackageResponse(BaseModel):
+    id: str
+    package_name: str
+    description: str
+    monthly_price: int
+    subscriber_count: int
+
+    class Config:
+        orm_mode = True
+
+
+def generate_package_id(session: Session):
+    """
+    Generate a unique package ID in the format 'pak-<number>'.
+    """
+    count = session.query(Package).count()
+    return f"pak-{count + 1}"
+
+
+@router.get("/", response_model=list[PackageResponse])
 def get_packages(request: UserRequest, db: Session = Depends(get_db)):
     """
     Fetch all packages from the database.
@@ -47,6 +71,7 @@ def get_packages(request: UserRequest, db: Session = Depends(get_db)):
     create_audit_log_entry(user_id=sanitized_user_id, action="Fetched all packages", db=db)
     logger.debug(f"Fetched {len(packages)} packages.")
     return packages
+
 
 @router.get("/{package_id}")
 def get_package(request: UserRequest, package_id: str, db: Session = Depends(get_db)):
@@ -68,31 +93,26 @@ def get_package(request: UserRequest, package_id: str, db: Session = Depends(get
     logger.debug(f"Fetched package details: {package}")
     return package
 
-@router.post("/")
+@router.post("/new_package")
 def create_package(package: PackageCreate, db: Session = Depends(get_db)):
     """
-    Create a new package in the database.
-    :param package: Details of the package to create, including user ID.
-    :param db: Database session.
-    :return: Details of the created package.
+    Create a new package.
     """
-    sanitized_user_id = sanitize_input(package.user_id)  # Protects against XSS
-    sanitized_package_name = sanitize_input(package.package_name)  # Protects against XSS
-    sanitized_description = sanitize_input(package.description)  # Protects against XSS
-    sanitized_monthly_price = int(package.monthly_price)  # Ensure numeric input
-
-    logger.info(f"Creating a new package with name {sanitized_package_name} by user {sanitized_user_id}.")
-    new_package = Package(
-        package_name=sanitized_package_name,
-        description=sanitized_description,
-        monthly_price=sanitized_monthly_price,
-    )
-    db.add(new_package)
-    db.commit()
-    db.refresh(new_package)
-    create_audit_log_entry(user_id=sanitized_user_id, action=f"Created package {new_package.package_name}", db=db)
-    logger.info(f"Package created successfully with ID: {new_package.id}")
-    return new_package
+    try:
+        package_id = generate_package_id(db)
+        new_package = Package(
+            id=package_id,
+            package_name=package.package_name,
+            description=package.description,
+            monthly_price=package.monthly_price,
+        )
+        db.add(new_package)
+        db.commit()
+        db.refresh(new_package)
+        return {"status": "success", "id": new_package.id}
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error creating package") from e
 
 @router.put("/{package_id}")
 def update_package(package_id: str, package: PackageUpdate, db: Session = Depends(get_db)):

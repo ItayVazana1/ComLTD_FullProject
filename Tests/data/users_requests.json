@@ -1,0 +1,30 @@
+{
+  "register": {
+    "full_name": "Test User",
+    "username": "testuser",
+    "email": "vazanaitay3133@gmail.com",
+    "phone_number": "1234567890",
+    "password": "TestPassword123",
+    "confirm_password": "TestPassword123",
+    "accept_terms": true,
+    "gender": "Other"
+  },
+  "login": {
+    "username_or_email": "vazanaitay3133@gmail.com",
+    "password": "TestPassword123"
+  },
+  "password_reset": {
+    "email": "vazanaitay3133@gmail.com"
+  },
+  "reset_password": {
+    "reset_token": "<MANUAL-TOKEN-INSERTION>",
+    "new_password": "NewPassword123",
+    "confirm_password": "NewPassword123"
+  },
+  "update_user": {
+    "full_name": "Updated User",
+    "phone_number": "0987654321",
+    "email": "updateduser@example.com",
+    "gender": "Female"
+  }
+}

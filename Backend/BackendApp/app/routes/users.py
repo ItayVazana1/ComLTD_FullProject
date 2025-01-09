@@ -8,6 +8,7 @@ from ..models.database import get_db
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
 from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
+from ..utils.email import send_email
 from passlib.hash import bcrypt
 
 router = APIRouter()
@@ -46,6 +47,11 @@ class ResetPasswordRequest(BaseModel):
     reset_token: str
     new_password: str
     confirm_password: str
+
+class LogoutRequest(BaseModel):
+    token: str
+
+
 
 # Endpoints
 @router.post("/login", response_model=LoginResponse)
@@ -168,7 +174,10 @@ def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(
 
 @router.post("/password-reset")
 def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
-    # Handle generating a password reset token for a user and saving it in the database.
+    """
+    Handle generating a password reset token for a user and saving it in the database.
+    Additionally, send the token to the user's email.
+    """
     logger.info(f"Password reset request received for: {request.email}")
     try:
         sanitized_email = sanitize_input(request.email)  # Protects against XSS
@@ -189,9 +198,28 @@ def request_password_reset(request: PasswordResetRequest, db: Session = Depends(
         )
         db.add(password_reset)
         db.commit()
+
         create_audit_log_entry(user_id=user.id, action="Password reset requested", db=db)
 
-        return {"status": "success", "reset_token": reset_token, "message": "Password reset token generated"}
+        # שליחת אימייל עם טוקן האיפוס
+        email_subject = "Password Reset Request"
+        email_body = f"""
+        Hello {user.full_name},
+
+        You requested to reset your password. Use the token below to reset your password:
+        Token: {reset_token}
+
+        Note: This token is valid for 1 hour.
+
+        If you did not request this, please ignore this email.
+
+        Best regards,
+        Communication LTD Team
+        """
+        send_email(recipient=[sanitized_email], subject=email_subject, body=email_body)
+        logger.info(f"Password reset email sent to {sanitized_email}")
+
+        return {"status": "success", "reset_token": reset_token, "message": "Password reset token generated and email sent"}
 
     except Exception as e:
         db.rollback()
@@ -237,4 +265,35 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     except Exception as e:
         db.rollback()
         logger.exception(f"Error during password reset: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/logout")
+def logout(request: LogoutRequest, db: Session = Depends(get_db)):
+    """
+    Handle user logout by invalidating the current token.
+    :param request: LogoutRequest containing the authentication token.
+    :param db: Database session.
+    """
+    logger.info(f"Logout request received with token: {request.token}")
+    try:
+
+        user = db.query(User).filter(User.current_token == request.token).first()
+
+        if not user:
+            logger.warning(f"Logout failed - no user found with token: {request.token}")
+            raise HTTPException(status_code=401, detail="Invalid token or user not logged in")
+
+
+        user.is_logged_in = False
+        user.current_token = None
+        db.commit()
+
+
+        create_audit_log_entry(user_id=user.id, action="User logout", db=db)
+        logger.info(f"User {user.id} successfully logged out")
+        return {"status": "success", "message": "User logged out successfully"}
+
+    except Exception as e:
+        db.rollback()
+        logger.exception(f"Error during logout: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

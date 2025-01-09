@@ -5,9 +5,19 @@ from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from enum import Enum as PyEnum
 from ..utils.loguru_config import logger
+from sqlalchemy.sql import func
+from sqlalchemy.orm.session import Session
+
 
 # Base for tables
 Base = declarative_base()
+
+def generate_package_id(session: Session):
+    """
+    Generate a unique package ID in the format 'pak-<number>'.
+    """
+    count = session.query(Package).count()
+    return f"pak-{count + 1}"
 
 # Enum for Gender
 class Gender(PyEnum):
@@ -54,18 +64,17 @@ class Customer(Base):
         super().__init__(*args, **kwargs)
         logger.debug(f"Customer model initialized: {self.first_name} {self.last_name}, Email: {self.email_address}")
 
-# Package Table
+# Packages Table
 class Package(Base):
     __tablename__ = "packages"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(50), primary_key=True)
     package_name = Column(String(50), nullable=False, unique=True)
     description = Column(Text, nullable=True)
     monthly_price = Column(Integer, nullable=False)
     subscriber_count = Column(Integer, default=0)
 
     customers = relationship("Customer", back_populates="package")
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logger.debug(f"Package model initialized: {self.package_name}, Price: {self.monthly_price}")
