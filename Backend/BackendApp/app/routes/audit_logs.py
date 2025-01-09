@@ -26,7 +26,7 @@ def get_audit_logs(db: Session = Depends(get_db)):
     return audit_logs
 
 @router.get("/{log_id}")
-def get_audit_log(log_id: str, db: Session = Depends(get_db)):
+def get_audit_log(log_id: int, db: Session = Depends(get_db)):
     """
     Fetch a specific audit log by its ID.
     :param log_id: The ID of the audit log to fetch.

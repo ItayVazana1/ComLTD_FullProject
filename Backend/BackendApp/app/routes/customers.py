@@ -33,7 +33,29 @@ class CustomerUpdate(BaseModel):
 class UserRequest(BaseModel):
     user_id: str
 
-@router.get("/")
+class CustomerResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    email_address: str
+    address: str
+    package_id: str
+    gender: str
+
+    class Config:
+        orm_mode = True
+
+
+def generate_customer_id(session):
+    """
+    Generate a unique customer ID in the format 'cust-<number>'.
+    """
+    count = session.query(Customer).count()
+    return f"cust-{count + 1}"
+
+
+@router.get("/", response_model=list[CustomerResponse])
 def get_customers(request: UserRequest, db: Session = Depends(get_db)):
     """
     Fetch all customers from the database.
@@ -68,30 +90,33 @@ def get_customer(customer_id: str, request: UserRequest, db: Session = Depends(g
     logger.debug(f"Fetched customer details: {customer}")
     return customer
 
+
 @router.post("/")
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     """
     Create a new customer in the database.
-    :param customer: Details of the customer to create, including user ID.
-    :param db: Database session.
-    :return: Details of the created customer.
     """
-    sanitized_user_id = sanitize_input(customer.user_id)  # Protects against XSS
-    sanitized_first_name = sanitize_input(customer.first_name)  # Protects against XSS
-    sanitized_last_name = sanitize_input(customer.last_name)  # Protects against XSS
-    sanitized_phone_number = sanitize_input(customer.phone_number)  # Protects against XSS
-    sanitized_email_address = sanitize_input(customer.email_address)  # Protects against XSS
-    sanitized_address = sanitize_input(customer.address)  # Protects against XSS
-    sanitized_package_id = prevent_sql_injection(customer.package_id)  # Prevents SQL Injection
-    sanitized_gender = sanitize_input(customer.gender)  # Protects against XSS
+    sanitized_user_id = sanitize_input(customer.user_id)
+    sanitized_first_name = sanitize_input(customer.first_name)
+    sanitized_last_name = sanitize_input(customer.last_name)
+    sanitized_phone_number = sanitize_input(customer.phone_number)
+    sanitized_email_address = sanitize_input(customer.email_address)
+    sanitized_address = sanitize_input(customer.address)
+    sanitized_package_id = prevent_sql_injection(customer.package_id)
+    sanitized_gender = sanitize_input(customer.gender)
 
     logger.info(f"Creating a new customer: {sanitized_first_name} {sanitized_last_name} by user {sanitized_user_id}.")
+
     package = db.query(Package).filter(Package.id == sanitized_package_id).first()
     if not package:
         logger.warning(f"Package with ID {sanitized_package_id} not found.")
         raise HTTPException(status_code=404, detail="Package not found")
 
+    # יצירת ID ייחודי ללקוח
+    customer_id = generate_customer_id(db)
+
     new_customer = Customer(
+        id=customer_id,
         first_name=sanitized_first_name,
         last_name=sanitized_last_name,
         phone_number=sanitized_phone_number,
@@ -102,7 +127,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     )
     db.add(new_customer)
 
-    # Increment subscriber count for the package
+    # עדכון כמות המנויים בחבילה
     package.subscriber_count += 1
 
     db.commit()

@@ -1,55 +1,20 @@
-from fastapi import APIRouter, Form, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from ..models.database import get_db
-from ..models.tables import User, PasswordReset
+from ..models.tables import User
 from ..utils.loguru_config import logger
 from ..utils.email import send_email
 from ..utils.attack_detectors import sanitize_input
-from uuid import uuid4
-from datetime import datetime, timedelta
 
 router = APIRouter()
 
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
 class ContactUsRequest(BaseModel):
+    user_id: str
     name: str
     email: EmailStr
     message: str
     send_copy: bool = False
-
-@router.post("/forgot-password-send")
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """
-    Process forgot password request.
-    :param request: JSON containing user's email address.
-    :param db: Database session.
-    :return: Message indicating email was sent or user not found.
-    """
-    sanitized_email = sanitize_input(request.email)  # Protects against XSS
-    logger.info(f"Received forgot password request for email: {sanitized_email}")
-    user = db.query(User).filter(User.email == sanitized_email).first()
-    if not user:
-        logger.warning(f"No user found with email: {sanitized_email}")
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Generate and send the reset token
-    reset_token = str(uuid4())
-    token_expiry = datetime.utcnow() + timedelta(hours=1)
-    password_reset = PasswordReset(
-        user_id=user.id, reset_token=reset_token, token_expiry=token_expiry
-    )
-    db.add(password_reset)
-    db.commit()
-    send_email(
-        recipient=[sanitized_email],
-        subject="Password Reset Request",
-        body=f"Your password reset token is: {reset_token}",
-    )
-    logger.info(f"Password reset email sent to {sanitized_email}")
-    return {"detail": "Password reset email sent successfully"}
 
 @router.post("/contact-us-send")
 def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
@@ -57,22 +22,32 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
     Handle "Contact Us" form submissions and optionally send a copy to the user.
     :param request: ContactUsRequest model with form details.
     :param db: Database session.
+    :return: A success message if the email is sent successfully.
     """
-    sanitized_name = sanitize_input(request.name)  # Protects against XSS
-    sanitized_email = sanitize_input(request.email)  # Protects against XSS
-    sanitized_message = sanitize_input(request.message)  # Protects against XSS
+    # Validate user_id
+    user = db.query(User).filter(User.id == request.user_id).first()
+    if not user:
+        logger.warning(f"Invalid user ID: {request.user_id}")
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Sanitize inputs
+    sanitized_name = sanitize_input(request.name)
+    sanitized_email = sanitize_input(request.email)
+    sanitized_message = sanitize_input(request.message)
 
     logger.info(f"Contact us form submitted by {sanitized_name} ({sanitized_email})")
     admin_email = "admin@communication-ltd.com"  # Replace with your actual admin email
 
-    # Send email to admin
     try:
+        # Send email to admin
         send_email(
             recipient=[admin_email],
             subject="New Contact Us Submission",
-            body=f"Name: {sanitized_name}\nEmail: {sanitized_email}\nMessage:\n{sanitized_message}"
+            body=f"Name: {sanitized_name}\n"
+                 f"Email: {sanitized_email}\n"
+                 f"Message:\n{sanitized_message}"
         )
-        logger.info("Contact us message sent to admin")
+        logger.info("Contact us message sent to admin.")
 
         # Optionally send a copy to the user
         if request.send_copy:
@@ -85,7 +60,7 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
                      f"We'll get back to you as soon as possible.\n\n"
                      f"Best regards,\nCommunication LTD"
             )
-            logger.info(f"Copy of contact us message sent to {sanitized_email}")
+            logger.info(f"Copy of contact us message sent to {sanitized_email}.")
 
         return {"status": "success", "message": "Message sent successfully"}
     except Exception as e:

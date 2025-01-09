@@ -1,0 +1,109 @@
+C:\Users\itay3\Desktop\ComLTD_full\ComLTD_FullProject\Tests\unit>py test_users.py
+Starting tests...
+Testing user registration...
+User id from registration test is - 17c6bc2d-7465-4934-b5e3-9304b9858460
+User registration test passed!
+Testing user login...
+Current Session Token for tested user is - a4454013-eafd-4a8b-9606-f459b5ce6f15
+User login test passed!
+Testing password reset request...
+Password reset request test passed!
+Testing password reset...
+Enter the reset token sent to your email: 6572c811-d229-4998-a817-621ff22717ed
+Password reset test passed!
+Testing user update...
+User update test passed!
+Testing user logout...
+User logout test passed!
+All tests completed successfully!
+
+C:\Users\itay3\Desktop\ComLTD_full\ComLTD_FullProject\Tests\unit>py test_customers.py
+Starting customers tests...
+Testing user registration...
+User registration test passed!
+Testing user login...
+User login test passed!
+Testing creation of multiple customers...
+Created customer: Sophia Anderson with ID: cust-1
+Created customer: Liam Thompson with ID: cust-2
+Created customer: Olivia Taylor with ID: cust-3
+Multiple customer creation test passed!
+Testing fetching all customers...
+
+Fetched Customers:
+ID: cust-1, Name: Sophia Anderson
+ID: cust-2, Name: Liam Thompson
+ID: cust-3, Name: Olivia Taylor
+Fetch all customers test passed!
+Testing fetching a customer...
+Fetched customer with ID: cust-1
+Fetched customer with ID: cust-2
+Fetched customer with ID: cust-3
+Fetch specific customer test passed!
+Testing updating a customer...
+Customer with ID: cust-1 updated successfully.
+Customer update test passed!
+Testing deleting a customer...
+Customer with ID: cust-3 deleted successfully.
+Customer deletion test passed!
+Testing user logout...
+User logout test passed!
+All customer tests completed successfully!
+
+C:\Users\itay3\Desktop\ComLTD_full\ComLTD_FullProject\Tests\unit>py test_packages.py
+Starting tests...
+Testing user registration...
+User registration test passed!
+Testing user login...
+User login test passed!
+Testing package creation...
+Package creation test passed!
+Testing fetching all packages...
+
+Fetched Packages:
+ID: pak-1, Name: Basic , subscriber count: 0
+ID: pak-2, Name: Standard , subscriber count: 1
+ID: pak-3, Name: Premium , subscriber count: 1
+ID: pak-4, Name: VIP , subscriber count: 0
+ID: pak-5, Name: Premium Package , subscriber count: 0
+Fetch all packages test passed!
+Testing updating a package...
+Package update test passed!
+Testing fetching all packages...
+
+Fetched Packages:
+ID: pak-1, Name: Basic , subscriber count: 0
+ID: pak-2, Name: Standard , subscriber count: 1
+ID: pak-3, Name: Premium , subscriber count: 1
+ID: pak-4, Name: VIP , subscriber count: 0
+ID: pak-5, Name: Premium Package , subscriber count: 0
+Fetch all packages test passed!
+Testing fetching a package...
+Fetch specific package test passed!
+Testing deleting a package...
+Package deletion test passed!
+Testing fetching all packages...
+
+Fetched Packages:
+ID: pak-1, Name: Basic , subscriber count: 0
+ID: pak-2, Name: Standard , subscriber count: 1
+ID: pak-3, Name: Premium , subscriber count: 1
+ID: pak-4, Name: VIP , subscriber count: 0
+Fetch all packages test passed!
+Testing user logout...
+User logout test passed!
+All tests completed successfully!
+
+C:\Users\itay3\Desktop\ComLTD_full\ComLTD_FullProject\Tests\unit>py test_contact_us.py
+Starting contact us tests...
+Testing user registration...
+User registration test passed!
+Testing user login...
+User login test passed!
+Testing contact us with a valid request...
+Contact us with valid request test passed!
+Testing contact us with send_copy=True...
+Contact us with send_copy request test passed!
+Testing user logout...
+User logout test passed!
+All contact us tests completed successfully!

@@ -1,27 +1,27 @@
 {
   "register_user": {
-    "full_name": "Test User",
-    "username": "testuser",
-    "email": "testuser@example.com",
-    "phone_number": "1234567890",
-    "password": "TestPassword123",
-    "confirm_password": "TestPassword123",
+    "full_name": "Alice Johnson",
+    "username": "alicejohnson123",
+    "email": "alicejohnson@example.com",
+    "phone_number": "0541112233",
+    "password": "AliceSecurePass123!",
+    "confirm_password": "AliceSecurePass123!",
     "accept_terms": true,
-    "gender": "Other"
+    "gender": "Female"
   },
   "login_user": {
-    "username_or_email": "testuser@example.com",
-    "password": "TestPassword123"
+    "username_or_email": "alicejohnson@example.com",
+    "password": "AliceSecurePass123!"
   },
   "create_package": {
-    "package_name": "Test Package",
-    "description": "A test package for verification.",
-    "monthly_price": 99
+    "package_name": "Premium Package",
+    "description": "A premium package with advanced features.",
+    "monthly_price": 149
   },
   "update_package": {
-    "package_name": "Updated Test Package",
-    "description": "Updated description for the test package.",
-    "monthly_price": 49,
+    "package_name": "Updated Premium Package",
+    "description": "Updated features for the premium package.",
+    "monthly_price": 129,
     "user_id": "dynamic"
   },
   "delete_package": {

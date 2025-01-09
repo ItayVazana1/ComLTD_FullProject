@@ -49,15 +49,15 @@ class User(Base):
 class Customer(Base):
     __tablename__ = "customers"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    first_name = Column(String(255), nullable=False)
-    last_name = Column(String(255), nullable=False)
-    phone_number = Column(String(20), nullable=True)
-    email_address = Column(String(255), nullable=False)
-    address = Column(String(255), nullable=True)
-    gender = Column(Enum(Gender), nullable=True)
+    id = Column(String(50), primary_key=True)
+    first_name = Column(String(50), nullable=False)
+    last_name = Column(String(50), nullable=False)
+    phone_number = Column(String(15), nullable=False)
+    email_address = Column(String(100), nullable=False, unique=True)
+    address = Column(Text, nullable=True)
+    package_id = Column(String(50), ForeignKey("packages.id"), nullable=False)
+    gender = Column(String(10), nullable=False)
 
-    package_id = Column(String(36), ForeignKey("packages.id"), nullable=True)
     package = relationship("Package", back_populates="customers")
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +83,7 @@ class Package(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Integer עם autoincrement
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     action = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)

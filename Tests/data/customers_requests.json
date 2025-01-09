@@ -1,0 +1,48 @@
+{
+  "register_user": {
+    "full_name": "Michael Johnson",
+    "username": "michaeljohnson123",
+    "email": "michaeljohnson@example.com",
+    "phone_number": "0549876543",
+    "password": "SecureMichael123!",
+    "confirm_password": "SecureMichael123!",
+    "accept_terms": true,
+    "gender": "Male"
+  },
+  "login_user": {
+    "username_or_email": "michaeljohnson@example.com",
+    "password": "SecureMichael123!"
+  },
+  "customers": [
+    {
+      "user_id": "dynamic",
+      "first_name": "Sophia",
+      "last_name": "Anderson",
+      "phone_number": "0541112233",
+      "email_address": "sophia.anderson@example.com",
+      "address": "123 Dreamland Ave",
+      "package_id": "pak-1",
+      "gender": "Female"
+    },
+    {
+      "user_id": "dynamic",
+      "first_name": "Liam",
+      "last_name": "Thompson",
+      "phone_number": "0542223344",
+      "email_address": "liam.thompson@example.com",
+      "address": "456 Builder St",
+      "package_id": "pak-2",
+      "gender": "Male"
+    },
+    {
+      "user_id": "dynamic",
+      "first_name": "Olivia",
+      "last_name": "Taylor",
+      "phone_number": "0543334455",
+      "email_address": "olivia.taylor@example.com",
+      "address": "789 Artistic Blvd",
+      "package_id": "pak-3",
+      "gender": "Other"
+    }
+  ]
+}
