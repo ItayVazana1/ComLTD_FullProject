@@ -88,7 +88,7 @@ def test_update_customer():
         "package_id": "pak-3",
         "gender": "Other"
     }
-    response = requests.put(f"{BASE_URL}/customers/{customer_id}", json=customer_update_request)
+    response = requests.put(f"{BASE_URL}/customers/update_customer/{customer_id}", json=customer_update_request)
     assert response.status_code == 200, f"Failed: {response.json()}"
     print(f"Customer with ID: {customer_id} updated successfully.")
 
@@ -99,7 +99,7 @@ def test_delete_customer():
     print("Testing deleting a customer...")
     customer_id = test_requests["customers"][-1].get("id")  # Delete the last customer
     assert customer_id, "Customer ID is not available for delete test"
-    response = requests.delete(f"{BASE_URL}/customers/{customer_id}", json={"user_id": user_id})
+    response = requests.delete(f"{BASE_URL}/customers/delete_customer/{customer_id}", json={"user_id": user_id})
     assert response.status_code == 200, f"Failed: {response.json()}"
     print(f"Customer with ID: {customer_id} deleted successfully.")
 

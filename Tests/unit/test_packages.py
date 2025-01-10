@@ -36,6 +36,10 @@ def test_create_package():
     print("Testing package creation...")
     package_request = test_requests["create_package"]
     package_request["user_id"] = user_id  # Add user_id dynamically
+
+    # Print request for debugging purposes
+    print(f"Request payload: {package_request}")
+
     response = requests.post(f"{BASE_URL}/packages/new_package", json=package_request)
     assert response.status_code == 200, f"Failed: {response.json()}"
     package_id = response.json().get("id")
@@ -44,44 +48,46 @@ def test_create_package():
     print("Package creation test passed!")
 
 
+
 def test_get_all_packages():
     """Test fetching all packages."""
     print("Testing fetching all packages...")
-
     response = requests.get(f"{BASE_URL}/packages/", json={"user_id": user_id})
     assert response.status_code == 200, f"Failed: {response.text}"
-
     packages = response.json()
     assert isinstance(packages, list), "Response is not a list"
-    assert len(packages) > 0, "No packages returned"
-
-    print("\nFetched Packages:")
-    for package in packages:
-        print(f"ID: {package['id']}, Name: {package['package_name']} , subscriber count: {package['subscriber_count']}")
-
+    assert len(packages) > 0, "No packages were returned"
+    print(f"Fetched {len(packages)} packages for user {user_id}.")
     print("Fetch all packages test passed!")
-
 
 
 def test_update_package():
     """Test updating a package."""
     print("Testing updating a package...")
-    package_id = test_requests["create_package"].get("id")
+    package_id = test_requests["create_package"]["id"]
     assert package_id, "Package ID is not available for update test"
+
     package_update_request = test_requests["update_package"]
     package_update_request["user_id"] = user_id  # Add user_id dynamically
-    response = requests.put(f"{BASE_URL}/packages/{package_id}", json=package_update_request)
+
+    response = requests.put(f"{BASE_URL}/packages/update_package/{package_id}", json=package_update_request)
     assert response.status_code == 200, f"Failed: {response.json()}"
     print("Package update test passed!")
+
 
 def test_get_package():
     """Test fetching a specific package."""
     print("Testing fetching a package...")
     package_id = test_requests["create_package"].get("id")
-    assert package_id, "Package ID is not available for fetching test"
-    response = requests.get(f"{BASE_URL}/packages/{package_id}", json={"user_id": user_id})
+    assert package_id, "Package ID not available for fetching test"
+
+    response = requests.get(f"{BASE_URL}/packages/{package_id}")
     assert response.status_code == 200, f"Failed: {response.json()}"
-    print("Fetch specific package test passed!")
+
+    package = response.json()
+    assert package["id"] == package_id, "Fetched package ID does not match"
+    print("Package fetch test passed!")
+
 
 def test_delete_package():
     """Test deleting a package."""
@@ -90,7 +96,7 @@ def test_delete_package():
     assert package_id, "Package ID is not available for delete test"
     delete_request = test_requests["delete_package"]
     delete_request["user_id"] = user_id  # Add user_id dynamically
-    response = requests.delete(f"{BASE_URL}/packages/{package_id}", json=delete_request)
+    response = requests.delete(f"{BASE_URL}/packages/delete_package/{package_id}", json=delete_request)
     assert response.status_code == 200, f"Failed: {response.json()}"
     print("Package deletion test passed!")
 

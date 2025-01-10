@@ -10,11 +10,14 @@ from .routes.landing_page import router as landing_page_router
 from .routes.contact_us import router as contact_us_router
 from .utils.loguru_config import logger
 
+# Title: Application Initialization and Route Registration
 
 def create_application() -> FastAPI:
     """
-    Function to create the FastAPI application and include all routes and modules.
-    :return: Configured FastAPI application.
+    Create and configure the FastAPI application.
+
+    This function sets up the application, registers routes, and adds metadata.
+    :return: Configured FastAPI application instance.
     """
     logger.info("Initializing FastAPI application...")
     application = FastAPI(
@@ -34,10 +37,13 @@ def create_application() -> FastAPI:
     logger.info("Routes successfully registered.")
     return application
 
+# Title: Database Initialization
 
 def initialize_database():
     """
-    Function to load models, create tables, and populate initial data.
+    Initialize the database by loading models, creating tables, and populating initial data.
+
+    This function ensures the database is ready for use by the application.
     """
     try:
         logger.info("Starting database initialization...")
@@ -49,8 +55,8 @@ def initialize_database():
         logger.error(f"Database initialization failed: {e}")
         raise
 
+# Title: Main Application Entry Point
 
-# Main entry point for the application
 try:
     logger.info("Starting application setup...")
     initialize_database()

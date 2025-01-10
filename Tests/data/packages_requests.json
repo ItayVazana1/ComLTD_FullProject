@@ -19,10 +19,10 @@
     "monthly_price": 149
   },
   "update_package": {
+    "user_id": "dynamic",
     "package_name": "Updated Premium Package",
     "description": "Updated features for the premium package.",
-    "monthly_price": 129,
-    "user_id": "dynamic"
+    "monthly_price": 129
   },
   "delete_package": {
     "user_id": "dynamic"
