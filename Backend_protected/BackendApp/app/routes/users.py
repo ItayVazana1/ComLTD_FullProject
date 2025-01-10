@@ -296,7 +296,7 @@ def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-router.post("/password-reset")
+@router.post("/password-reset")
 def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
     """
     Initiate a password reset for a user by sending a reset token to their email.

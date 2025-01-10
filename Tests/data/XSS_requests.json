@@ -1,9 +1,9 @@
 {
   "setup": {
     "register": {
-      "full_name": "Legit User",
-      "username": "legituser",
-      "email": "legituser@example.com",
+      "full_name": "Legit User2",
+      "username": "legituser2",
+      "email": "legituser2@example.com",
       "phone_number": "1234567890",
       "password": "SecurePass123!",
       "confirm_password": "SecurePass123!",
@@ -11,15 +11,15 @@
       "gender": "Male"
     },
     "login": {
-      "username_or_email": "legituser@example.com",
+      "username_or_email": "legituser2@example.com",
       "password": "SecurePass123!"
     }
   },
   "attacks": {
     "register": {
       "full_name": "<script>alert('XSS')</script>",
-      "username": "legituser",
-      "email": "legituser@example.com",
+      "username": "legituser2",
+      "email": "legituser2@example.com",
       "phone_number": "1234567890",
       "password": "SecurePass123!",
       "confirm_password": "SecurePass123!",
@@ -37,7 +37,7 @@
       "user_id": "1",
       "full_name": "<script>alert('XSS')</script>",
       "phone_number": "1234567890",
-      "email": "legituser@example.com",
+      "email": "legituser2@example.com",
       "gender": "Male"
     }
   }
