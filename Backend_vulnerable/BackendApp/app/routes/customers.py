@@ -104,7 +104,7 @@ def get_customer(customer_id: str, request: UserRequest, db: Session = Depends(g
         logger.exception(f"Error fetching customer {customer_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/create_customer")
+@router.post("/")
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     logger.info(f"Creating customer for user: {customer.user_id}")
     try:
