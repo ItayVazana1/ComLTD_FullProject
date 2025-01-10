@@ -1,35 +1,62 @@
 import React from 'react';
-import '../assets/styles/sidebar.css'
-import logo from '../assets/images/logo.png'
+import { useLocation } from 'react-router-dom';
+import '../assets/styles/Global.css';
+import '../assets/styles/sidebar.css';
+import logo from '../assets/images/logo.png';
 
 const menuItems = [
-  { title: 'Home', href: '/', style: { fontWeight: 'bold', backgroundColor: 'var(--color-dark-forest)' } },
+  { title: 'Home', href: '/' },
   { title: 'About', href: '/about' },
   { title: 'Data Plans', href: '/data-plans' },
   {
     title: 'Customers',
     subMenu: [
-      { title: 'New Customer', href: '#' },
-      { title: 'Search', href: '#' },
+      { title: 'New Customer', href: '/customers/new' },
+      { title: 'Search', href: '/customers/search' },
     ],
   },
   {
     title: 'Account',
     subMenu: [
-      { title: 'My Profile', href: '#' },
-      { title: 'Change My Password', href: '#' },
+      { title: 'My Profile', href: '/account/profile' },
+      { title: 'Change My Password', href: '/account/change-password' },
     ],
   },
   { title: 'Contact Us', href: '/contact' },
 ];
 
 function Sidebar() {
+  const location = useLocation(); // Get the current location
+
+  /**
+   * Check if the current path matches any of the submenu items.
+   * @param {Array} subMenu - The submenu items to check.
+   * @returns {boolean} - True if the current path matches a submenu item.
+   */
+  const isSubMenuActive = (subMenu) =>
+    subMenu.some((subItem) => location.pathname.startsWith(subItem.href));
+
+  /**
+   * Renders a submenu under a parent menu item.
+   * @param {Array} subMenu - Array of submenu items.
+   * @param {Number} parentIndex - Index of the parent menu item.
+   */
   const renderSubMenu = (subMenu, parentIndex) => {
     return (
-      <ul className="collapse nav flex-column ms-3" id={`submenu-${parentIndex}`}>
+      <ul
+        id={`submenu-${parentIndex}`}
+        className={`submenu collapse nav flex-column ms-3 ${
+          isSubMenuActive(subMenu) ? 'show' : '' // Ensure the submenu is visible if active
+        }`}
+      >
         {subMenu.map((subItem, subIndex) => (
-          <li className="nav-item" key={subIndex}>
-            <a href={subItem.href} className="nav-link text-white">
+          <li id={`submenu-item-${parentIndex}-${subIndex}`} className="nav-item" key={subIndex}>
+            <a
+              href={subItem.href}
+              className={`nav-link text-white ${
+                location.pathname === subItem.href ? 'active-link' : ''
+              }`} // Highlight active link
+            >
               {subItem.title}
             </a>
           </li>
@@ -39,26 +66,33 @@ function Sidebar() {
   };
 
   return (
-    <nav id="sidebar" className="col-md-3 col-lg-2 text-white d-flex flex-column vh-100">
+    <nav id="sidebar" className="col-md-3 col-lg-2 sidebar text-white d-flex flex-column vh-100">
+      {/* Company Logo */}
       <img
+        id="sidebar-logo"
         src={logo}
         alt="Company logo"
         className="logo img-fluid p-3 mt-4"
-        style={{ maxHeight: '250px' }}
+        style={{ maxHeight: '200px' }}
       />
-      <h6 className="h6 text-center">Communication LTD</h6>
-      <h6 className="h6 text-center">_______________________________</h6>
-      <ul className="nav flex-column p-3">
+
+      {/* Company Name */}
+      <h5 id="sidebar-company-name" className="h5 text-center">Communication LTD</h5>
+      <h6 id="sidebar-divider" className="h6 text-center">_______________________________</h6>
+
+      {/* Navigation Menu */}
+      <ul id="sidebar-menu" className="nav flex-column p-3">
         {menuItems.map((item, index) => (
-          <li className="nav-item mt-2" key={index}>
+          <li id={`menu-item-${index}`} className="nav-item mt-2" key={index}>
             {item.subMenu ? (
               <>
                 <a
+                  id={`menu-link-${index}`}
                   href={`#submenu-${index}`}
                   className="nav-link text-white"
                   data-bs-toggle="collapse"
                   role="button"
-                  aria-expanded="false"
+                  aria-expanded={isSubMenuActive(item.subMenu)} // Keep submenu expanded if active
                   aria-controls={`submenu-${index}`}
                 >
                   {item.title}
@@ -66,7 +100,13 @@ function Sidebar() {
                 {renderSubMenu(item.subMenu, index)}
               </>
             ) : (
-              <a href={item.href} className="nav-link text-white" style={item.style || {}}>
+              <a
+                id={`menu-link-${index}`}
+                href={item.href}
+                className={`nav-link text-white ${
+                  location.pathname === item.href ? 'active-link' : ''
+                }`} // Highlight active link
+              >
                 {item.title}
               </a>
             )}

@@ -1,0 +1,2 @@
+# Ignore MySQL temporary files
+mysql_data/

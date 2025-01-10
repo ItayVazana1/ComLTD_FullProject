@@ -1,69 +1,69 @@
-/* עיצוב כולל לדף */
+/* Overall styling for the registration page */
 .registration-page {
   height: 100%;
-  min-height: 100vh; /* התאמה לגובה מלא */
+  min-height: 100vh; /* Full height adjustment */
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #0f2c33, #efa00f); /* צבע רקע */
+  background: linear-gradient(375deg , #326b79,#252152, #7d3a07, #efa00f); /* Background gradient */
 }
 
-/* עיצוב הקונטיינר */
+/* Styling for the container */
 .registration-page .container {
-  max-width: 800px; /* רוחב מקסימלי לקונטיינר */
-  width: 100%; /* שימוש ברוב הרוחב */
-  background-color: #fff; /* צבע רקע של הקונטיינר */
-  padding: 40px; /* ריווח פנימי */
-  border-radius: 10px; /* עיגול פינות */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* צל */
+  max-width: 800px; /* Maximum width for the container */
+  width: 100%; /* Use full width */
+  background-color: #fff; /* Background color */
+  padding: 40px; /* Internal padding */
+  border-radius: 10px; /* Rounded corners */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow */
 }
 
-/* כותרת הקונטיינר */
+/* Styling for the container title */
 .registration-page .container .title {
   font-size: 32px;
   font-weight: 600;
   margin-bottom: 30px;
-  text-align: center; /* מיקום הכותרת במרכז */
+  text-align: center; /* Center-align the title */
 }
 
-/* עיצוב הטופס */
+/* Styling for the form */
 .registration-page form {
-  max-width: 100%; /* הטופס יתפרס על כל הרוחב */
+  max-width: 100%; /* Form will take up the full width */
   width: 100%;
-  margin: 0; /* הסרת ריווח חיצוני */
+  margin: 0; /* Remove external spacing */
 }
 
-/* פרטי המשתמש */
+/* Styling for user details section */
 .registration-page .user-details {
   display: flex;
-  flex-wrap: wrap; /* מאפשר שדות להישבר לשורה חדשה */
-  gap: 20px; /* ריווח בין השדות */
+  flex-wrap: wrap; /* Allows fields to break to a new row */
+  gap: 20px; /* Space between fields */
 }
 
-/* עיצוב שדות הטופס */
+/* Styling for form fields */
 .registration-page .user-details .input-box {
-  width: calc(50% - 10px); /* כל שדה יתפוס חצי שורה */
+  width: calc(50% - 10px); /* Each field takes half a row */
   margin-bottom: 15px;
 }
 
 .registration-page .user-details .input-box input {
   height: 50px;
   width: 100%;
-  padding: 0 15px; /* ריווח פנימי */
+  padding: 0 15px; /* Internal padding */
   font-size: 16px;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
-/* כותרת השדה */
+/* Styling for field labels */
 .registration-page .user-details .input-box span.details {
   display: block;
   font-weight: 500;
   margin-bottom: 5px;
 }
 
-/* עיצוב אפשרויות המגדר */
+/* Styling for gender selection */
 .registration-page .gender-details {
   margin-top: 25px;
   display: flex;
@@ -92,8 +92,8 @@
   height: 18px;
 }
 
-/* כפתור הרשמה וכפתור חזרה */
-.registration-page .subButton input{
+/* Styling for buttons */
+.registration-page .subButton input {
   height: 50px;
   width: 100%;
   border-radius: 5px;
@@ -102,7 +102,7 @@
   color: #fff;
   cursor: pointer;
   margin-top: 30px;
-  background: linear-gradient(135deg, #06393b, #0d7556);
+  background: linear-gradient(250deg, #14878b, #0667b5);
   border: none;
 }
 
@@ -115,40 +115,38 @@
   color: #fff;
   cursor: pointer;
   margin-top: 30px;
-  background: linear-gradient(135deg, #252152, #583818);
+  background: linear-gradient(135deg, #c7aa18, #581618);
   border: none;
 }
 
-
 .registration-page .subButton input:hover,
 .registration-page .logButton input:hover {
-  background: linear-gradient(-135deg, #533946, #e6d1b4);
+  background: linear-gradient(-135deg, #f4addd, #5f0341);
 }
 
-/* עיצוב ה-checkbox */
+/* Styling for the checkbox */
 .validBox {
   display: flex;
-  justify-content: flex-start; /* הסימון בצד שמאל */
-  align-items: center; /* יישור טקסט אנכי */
+  justify-content: flex-start; /* Checkbox on the left */
+  align-items: center; /* Vertical text alignment */
   margin-top: 15px;
 }
 
 .validBox .checkbox-container {
   display: flex;
   align-items: center;
-  gap: 10px; /* ריווח בין הסימון לטקסט */
+  gap: 10px; /* Space between checkbox and text */
 }
 
 .validBox input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  margin: 0; /* ביטול ריווח נוסף */
+  margin: 0; /* Remove extra spacing */
 }
 
-
-/* התאמות למסכים קטנים */
+/* Media queries for small screens */
 @media (max-width: 768px) {
   .registration-page .user-details .input-box {
-      width: 100%; /* במסכים קטנים, כל שדה יתפרס על כל השורה */
+    width: 100%; /* Fields take full width on small screens */
   }
 }

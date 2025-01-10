@@ -1,13 +1,3 @@
-html, body {
-    height: 100vh; /* Full height */
-    width: 100vw; /* Full width */
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    background-color: var(--background-secondary); /* Updated background color */
-}
-
 
 main {
     margin-left: 250px; /* Matches Sidebar width */
@@ -16,7 +6,7 @@ main {
     min-height: calc(100vh - 56px); /* Minimum height adjusted */
     display: flex;
     flex-direction: column;
-    background-color: var(--background-secondary); /* Updated background color */
+    background-color:var(red); /* Updated background color */
     justify-content: center;
     align-items: center;
 }

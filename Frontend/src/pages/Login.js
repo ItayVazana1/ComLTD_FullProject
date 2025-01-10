@@ -1,49 +1,76 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/Login.css'; // ייבוא CSS מותאם לדף ההתחברות
+import '../assets/styles/Login.css';
 
 function Login({ onLogin }) {
   const navigate = useNavigate();
+  const [username, setUsername] = useState(''); // State to store username
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    onLogin(); // קריאה לפונקציית התחברות (מעודכנת)
-    navigate('/'); // ניתוב לדף ה-Home
+    e.preventDefault(); // Prevent default form submission
+    if (username.trim() === '') {
+      alert('Please enter a username.');
+      return;
+    }
+    onLogin(username); // Pass username to App.js
+    navigate('/'); // Redirect to the Home page
   };
 
   return (
-    <div className="login-page">
-      <div className="container">
-        <div className="title">Login</div>
-        <div className="content">
-          <form onSubmit={handleSubmit}>
-            <div className="user-details">
-              <div className="input-box">
-                <span className="details">Username</span>
-                <input type="text" placeholder="Enter your username" required />
+    <div id="login-page" className="login-page">
+      <div id="login-container" className="container">
+        {/* Page Title */}
+        <div id="login-title" className="title">Login</div>
+
+        {/* Form Container */}
+        <div id="login-content" className="content">
+          <form id="login-form" onSubmit={handleSubmit}>
+            {/* User Input Fields */}
+            <div id="user-details" className="user-details">
+              <div id="username-box" className="input-box">
+                <span id="username-label" className="details">Username</span>
+                <input
+                  id="username-input"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)} // Update username state
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Password</span>
-                <input type="password" placeholder="Enter your password" required />
+              <div id="password-box" className="input-box">
+                <span id="password-label" className="details">Password</span>
+                <input
+                  id="password-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  required
+                />
               </div>
             </div>
-            <div className="validBox">
-              <label className="checkbox-container">
-                <input type="checkbox" />
+
+            {/* Remember Me Checkbox */}
+            <div id="remember-box" className="validBox">
+              <label id="remember-label" className="checkbox-container">
+                <input id="remember-checkbox" type="checkbox" />
                 <span className="details">Remember me</span>
               </label>
             </div>
-            <div className="subButton">
+
+            {/* Submit Button */}
+            <div id="submit-button" className="subButton">
               <input type="submit" value="Login" />
             </div>
-            <div className="logButton">
+
+            {/* Forgot Password and Register Buttons */}
+            <div id="forgot-password-button" className="logButton">
               <input
                 type="button"
                 value="Forgot Password?"
                 onClick={() => navigate('/forgot-password')}
               />
             </div>
-            <div className="logButton">
+            <div id="register-button" className="logButton">
               <input
                 type="button"
                 value="Don't have an account? Register here"

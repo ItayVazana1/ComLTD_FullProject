@@ -1,69 +1,111 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/Register.css'; // ייבוא CSS מותאם
+import '../assets/styles/Register.css';
 
 function Register() {
-  const navigate = useNavigate(); // מאפשר ניווט בין דפים
+  const navigate = useNavigate(); // Enables navigation between pages
 
   return (
-    <div className="registration-page">
-      <div className="container">
-        <div className="title">Registration</div>
-        <div className="content">
-          <form action="#">
-            <div className="user-details">
-              <div className="input-box">
-                <span className="details">Full Name</span>
-                <input type="text" placeholder="Enter your name" required />
+    <div id="registration-page" className="registration-page">
+      <div id="registration-container" className="container">
+        {/* Page Title */}
+        <div id="registration-title" className="title">Registration</div>
+
+        {/* Registration Form */}
+        <div id="registration-content" className="content">
+          <form id="registration-form" action="#">
+            {/* User Details Section */}
+            <div id="user-details" className="user-details">
+              <div id="name-box" className="input-box">
+                <span id="name-label" className="details">Full Name</span>
+                <input
+                  id="name-input"
+                  type="text"
+                  placeholder="Enter your name"
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Username</span>
-                <input type="text" placeholder="Enter your username" required />
+              <div id="username-box" className="input-box">
+                <span id="username-label" className="details">Username</span>
+                <input
+                  id="username-input"
+                  type="text"
+                  placeholder="Enter your username"
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Email</span>
-                <input type="email" placeholder="Enter your email" required />
+              <div id="email-box" className="input-box">
+                <span id="email-label" className="details">Email</span>
+                <input
+                  id="email-input"
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Phone Number</span>
-                <input type="text" placeholder="Enter your number" required />
+              <div id="phone-box" className="input-box">
+                <span id="phone-label" className="details">Phone Number</span>
+                <input
+                  id="phone-input"
+                  type="text"
+                  placeholder="Enter your number"
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Password</span>
-                <input type="password" placeholder="Enter your password" required />
+              <div id="password-box" className="input-box">
+                <span id="password-label" className="details">Password</span>
+                <input
+                  id="password-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  required
+                />
               </div>
-              <div className="input-box">
-                <span className="details">Confirm Password</span>
-                <input type="password" placeholder="Confirm your password" required />
+              <div id="confirm-password-box" className="input-box">
+                <span id="confirm-password-label" className="details">Confirm Password</span>
+                <input
+                  id="confirm-password-input"
+                  type="password"
+                  placeholder="Confirm your password"
+                  required
+                />
               </div>
             </div>
-            <div className="validBox">
-              <label className="checkbox-container">
-                <input type="checkbox" required />
+
+            {/* Terms of Use Checkbox */}
+            <div id="terms-box" className="validBox">
+              <label id="terms-label" className="checkbox-container">
+                <input id="terms-checkbox" type="checkbox" required />
                 <span className="details">Click here to accept terms of use</span>
-                </label>
-              </div>
-            <div className="gender-details">
-              <span className="gender-title">Gender</span>
-              <div className="category">
+              </label>
+            </div>
+
+            {/* Gender Selection */}
+            <div id="gender-details" className="gender-details">
+              <span id="gender-title" className="gender-title">Gender</span>
+              <div id="gender-category" className="category">
                 <label htmlFor="dot-1">
-                  <input type="radio" name="gender" id="dot-1" />
+                  <input id="gender-male" type="radio" name="gender" />
                   <span className="gender">Male</span>
                 </label>
                 <label htmlFor="dot-2">
-                  <input type="radio" name="gender" id="dot-2" />
+                  <input id="gender-female" type="radio" name="gender" />
                   <span className="gender">Female</span>
                 </label>
                 <label htmlFor="dot-3">
-                  <input type="radio" name="gender" id="dot-3" />
+                  <input id="gender-other" type="radio" name="gender" />
                   <span className="gender">Prefer not to say</span>
                 </label>
               </div>
             </div>
-            <div className="subButton">
+
+            {/* Submit Button */}
+            <div id="register-submit-button" className="subButton">
               <input type="submit" value="Register" />
             </div>
-            <div className="logButton">
+
+            {/* Back to Login Button */}
+            <div id="register-back-login-button" className="logButton">
               <input
                 type="button"
                 value="Already registered? Back to login"

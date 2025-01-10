@@ -1,58 +1,67 @@
-/* Navbar Styles */
-header.navbar {
+/* Navbar container */
+#navbar {
+    background-color: var(--custom-background-navbar);
+    padding: 10px 20px;
     display: flex;
-    justify-content: space-between; /* חלוקה בין התוכן (חיפוש וכפתור) */
+    justify-content: space-between;
     align-items: center;
+    box-shadow: var(--custom-shadow-light); /* Box shadow for depth */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 1030;
-    background-color: var(--background-accent); /* צבע רקע */
-    color: var(--text-secondary); /* צבע טקסט */
-    padding: 10px 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* צל קל */
+    z-index: 1000; /* Ensure the navbar stays on top */
 }
 
-/* Search bar inside the Navbar */
-header.navbar input[type="text"] {
-    width: 250px;
-    border: 1px solid var(--text-secondary); /* צבע גבול */
-    border-radius: 5px;
-    padding: 5px 10px;
-    color: var(--text-secondary); /* צבע טקסט */
-    background-color: var(--text-primary); /* צבע רקע */
+/* Search box styling */
+#search-box {
+    width: 25%;
+    padding: 8px;
+    border: 1px solid var(--custom-border-light); /* Slight border for contrast */
+    border-radius: 4px;
+    background-color: var(--custom-input-light);
+    color: var(--custom-text-dark);
+    transition: border-color 0.3s ease-in-out;
 }
 
-/* Placeholder styling for the search bar */
-header.navbar input[type="text"]::placeholder {
-    color: var(--text-secondary); /* צבע Placeholder */
+#search-box:focus {
+    border-color: var(--custom-highlight-primary); /* Highlight on focus */
+    outline: none; /* Remove default outline */
+}
+
+/* User info container */
+#user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--custom-text-light);
+}
+
+/* User icon styling */
+#user-icon {
+    font-size: 24px;
+    color: var(--custom-icon-light);
+}
+
+/* Username text styling */
+#username-display {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--custom-text-light);
 }
 
 /* Logout button styling */
-.logout-btn {
-    padding: 5px 15px;
-    background-color: var(--background-primary);
-    color: var(--text-primary);
+#logout-button {
+    background-color: var(--custom-logout-btn);
+    color: var(--custom-button-primary-text);
     border: none;
-    border-radius: 5px;
-    font-size: 14px;
+    border-radius: 4px;
+    padding: 8px 16px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
-/* Hover effect for the Logout button */
-.logout-btn:hover {
-    background-color: var(--background-secondary); /* שינוי צבע בעת מעבר עכבר */
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-    header.navbar input[type="text"] {
-        width: 150px; /* תיבת חיפוש קטנה יותר במובייל */
-    }
-    .logout-btn {
-        font-size: 12px; /* כפתור קטן יותר */
-        padding: 5px 10px;
-    }
+#logout-button:hover {
+    background-color: var(--custom-logout-btn-hover); /* Change background on hover */
+    color: #fff; /* Ensure white text on hover */
 }

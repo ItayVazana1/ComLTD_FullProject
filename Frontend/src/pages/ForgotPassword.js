@@ -1,32 +1,51 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/ForgotPassword.css'; // ייבוא CSS מותאם לדף שכחתי סיסמה
+import '../assets/styles/ForgotPassword.css';
 
+/**
+ * ForgotPassword Component:
+ * This component handles the "Forgot Password" functionality.
+ * - Users can enter their email to receive a password reset link.
+ * - Includes navigation back to the login page.
+ */
 function ForgotPassword() {
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    alert('Password reset link has been sent to your email.'); // הודעה למשתמש
-    navigate('/login'); // ניתוב חזרה לדף התחברות
+    e.preventDefault(); // Prevent default form submission behavior
+    alert('Password reset link has been sent to your email.');
+    navigate('/login'); // Redirect to login page
   };
 
   return (
-    <div className="forgot-password-page">
-      <div className="container">
-        <div className="title">Forgot Password</div>
-        <div className="content">
-          <form onSubmit={handleSubmit}>
-            <div className="user-details">
-              <div className="input-box">
-                <span className="details">Email</span>
-                <input type="email" placeholder="Enter your email" required />
+    <div id="forgot-password-page" className="forgot-password-page">
+      <div id="forgot-password-container" className="container">
+        {/* Page Title */}
+        <div id="forgot-password-title" className="title">Forgot Password</div>
+
+        {/* Form Container */}
+        <div id="forgot-password-content" className="content">
+          <form id="forgot-password-form" onSubmit={handleSubmit}>
+            {/* Email Input Field */}
+            <div id="forgot-password-user-details" className="user-details">
+              <div id="forgot-password-email-box" className="input-box">
+                <span id="forgot-password-email-label" className="details">Email</span>
+                <input
+                  id="forgot-password-email-input"
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                />
               </div>
             </div>
-            <div className="subButton">
+
+            {/* Submit Button */}
+            <div id="forgot-password-submit-button" className="subButton">
               <input type="submit" value="Send Reset Link" />
             </div>
-            <div className="logButton">
+
+            {/* Back to Login Button */}
+            <div id="forgot-password-back-login-button" className="logButton">
               <input
                 type="button"
                 value="Back to login"
