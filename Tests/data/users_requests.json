@@ -26,5 +26,6 @@
     "phone_number": "0541122334",
     "email": "johnupdated@example.com",
     "gender": "Male"
-  }
+  },
+  "token": ""
 }

@@ -5,9 +5,10 @@ from ..models.database import get_db
 from ..models.tables import User
 from ..utils.loguru_config import logger
 from ..utils.email import send_email
-from ..utils.attack_detectors import sanitize_input
+from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
 
 router = APIRouter()
+
 
 class ContactUsRequest(BaseModel):
     user_id: str
@@ -15,6 +16,7 @@ class ContactUsRequest(BaseModel):
     email: EmailStr
     message: str
     send_copy: bool = False
+
 
 @router.post("/contact-us-send")
 def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
@@ -24,21 +26,29 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
     :param db: Database session.
     :return: A success message if the email is sent successfully.
     """
-    # Validate user_id
-    user = db.query(User).filter(User.id == request.user_id).first()
-    if not user:
-        logger.warning(f"Invalid user ID: {request.user_id}")
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Sanitize inputs
-    sanitized_name = sanitize_input(request.name)
-    sanitized_email = sanitize_input(request.email)
-    sanitized_message = sanitize_input(request.message)
-
-    logger.info(f"Contact us form submitted by {sanitized_name} ({sanitized_email})")
-    admin_email = "admin@communication-ltd.com"  # Replace with your actual admin email
-
     try:
+        # Validate and sanitize user_id
+        sanitized_user_id = sanitize_input(prevent_sql_injection(request.user_id))
+        if sanitized_user_id != request.user_id:
+            logger.warning("Potential XSS or SQL Injection detected in user_id.")
+            raise HTTPException(status_code=400, detail="Invalid input detected.")
+
+        # Validate user exists in database
+        user = db.query(User).filter(User.id == sanitized_user_id).first()
+        if not user:
+            logger.warning(f"Invalid user ID: {sanitized_user_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Sanitize other inputs
+        sanitized_name = sanitize_input(request.name)
+        sanitized_email = sanitize_input(request.email)
+        sanitized_message = sanitize_input(request.message)
+
+        logger.info(f"Contact us form submitted by {sanitized_name} ({sanitized_email})")
+
+        # Admin email
+        admin_email = "admin@communication-ltd.com"  # Replace with your actual admin email
+
         # Send email to admin
         send_email(
             recipient=[admin_email],
@@ -63,6 +73,9 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
             logger.info(f"Copy of contact us message sent to {sanitized_email}.")
 
         return {"status": "success", "message": "Message sent successfully"}
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to send contact us message: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send message")
+        logger.exception(f"Failed to process contact us submission: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process message")

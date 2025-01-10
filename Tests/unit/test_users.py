@@ -28,8 +28,20 @@ def test_user_login():
     token = response.json().get("token")
     print(f"Current Session Token for tested user is - {token}")
     assert token, "Token not returned in login response"
-    test_requests["token"] = token  # Save the token for logout
+    test_requests["token"] = token  # Save the token for other tests
     print("User login test passed!")
+
+def test_user_details():
+    """Test user details endpoint."""
+    print("Testing user details...")
+    token = test_requests.get("token")
+    assert token, "Token is not available for user details test"
+    response = requests.get(f"{BASE_URL}/users/user-details", params={"token": token})
+    assert response.status_code == 200, f"Failed: {response.json()}"
+    user_details = response.json()
+    print(f"Fetched user details: {user_details}")
+    assert user_details.get("id"), "User details not returned in response"
+    print("User details test passed!")
 
 def test_password_reset_request():
     """Test password reset request endpoint."""
@@ -75,6 +87,7 @@ if __name__ == "__main__":
     print("Starting tests...")
     test_user_registration()
     test_user_login()
+    test_user_details()
     test_password_reset_request()
     test_password_reset()
     test_user_update()
