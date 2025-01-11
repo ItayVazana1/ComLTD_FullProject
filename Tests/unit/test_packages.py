@@ -1,7 +1,11 @@
 import requests
 import json
 
-BASE_URL = "http://127.0.0.1:10000"
+# Port of Backend
+port = 11000
+
+# Base URL of the Backend
+BASE_URL = f"http://127.0.0.1:{port}"  # Update with your Backend URL
 DATA_PATH = "../data/packages_requests.json"
 
 # Load test data

@@ -1,3 +1,4 @@
+import atexit
 from fastapi import FastAPI
 from .models.database import engine, load_models
 from .models.tables import Base
@@ -9,6 +10,11 @@ from .routes.audit_logs import router as audit_logs_router
 from .routes.landing_page import router as landing_page_router
 from .routes.contact_us import router as contact_us_router
 from .utils.loguru_config import logger
+from .utils.cleanup import clear_database
+
+# הרשמה לפעולת הניקוי בסיום הריצה
+atexit.register(clear_database)
+
 
 # Title: Application Initialization and Route Registration
 

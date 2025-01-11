@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-from .models.database import engine, load_models
-from .models.tables import Base
+from .models.database import load_models
 from .utils.populate import populate_packages
 from .routes.users import router as users_router
 from .routes.packages import router as packages_router
@@ -15,15 +14,12 @@ from .utils.loguru_config import logger
 def create_application() -> FastAPI:
     """
     Create and configure the FastAPI application.
-
-    This function sets up the application, registers routes, and adds metadata.
-    :return: Configured FastAPI application instance.
     """
     logger.info("Initializing FastAPI application...")
     application = FastAPI(
-        title="Communication LTD API",
-        version="1.0.0",
-        description="API for managing Communication LTD operations."
+        title="Communication LTD API - Vulnerable",
+        version="1.1.0",
+        description="API for managing Communication LTD operations , in the most unsecure way"
     )
 
     # Include routers for all routes
@@ -41,15 +37,13 @@ def create_application() -> FastAPI:
 
 def initialize_database():
     """
-    Initialize the database by loading models, creating tables, and populating initial data.
-
-    This function ensures the database is ready for use by the application.
+    Initialize the database manually without using SQLAlchemy ORM.
     """
     try:
         logger.info("Starting database initialization...")
         load_models()
-        Base.metadata.create_all(bind=engine)
-        populate_packages()
+        # Execute any raw SQL necessary to initialize the database
+        populate_packages()  # Example of populating data
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")

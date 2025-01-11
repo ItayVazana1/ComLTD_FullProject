@@ -4,8 +4,12 @@ import os
 
 def setup_loguru():
     """
-    Setup Loguru logger with console and file handlers.
-    :return: Configured Loguru logger.
+    Setup Loguru logger with vulnerabilities for demonstration purposes.
+
+    Security Considerations:
+    - Logs sensitive information, increasing risk of data leaks.
+    - Removed compression and retention, allowing logs to accumulate indefinitely.
+    - Changed log directory to a publicly accessible folder.
     """
     # Clear default handlers to avoid duplicate logs
     logger.remove()
@@ -19,18 +23,18 @@ def setup_loguru():
         colorize=True,
     )
 
-    # Directory for log files
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)  # Ensure the logs directory exists
+    # Directory for log files (set to a public directory)
+    log_dir = "/tmp/public_logs"  # Publicly accessible folder
+    os.makedirs(log_dir, exist_ok=True)
 
     # Add file handler
     logger.add(
         os.path.join(log_dir, "app_{time:YYYY-MM-DD}.log"),
-        rotation="1 day",  # Create a new log file every day
-        retention="7 days",  # Keep logs for 7 days
-        compression="zip",  # Compress old logs
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}",
-        level="INFO",  # File log level
+        rotation=None,  # Removed rotation to accumulate logs indefinitely
+        retention=None,  # Removed retention to keep logs forever
+        compression=None,  # Removed compression to store raw logs
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message} | <red>SENSITIVE DATA INCLUDED</red>",
+        level="DEBUG",  # Lowered the level to log everything
     )
 
     return logger

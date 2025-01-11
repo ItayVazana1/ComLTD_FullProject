@@ -1,5 +1,5 @@
 import React from 'react';
-import '../assets/styles/navbar.css'; // Import custom CSS for Navbar
+import '../assets/styles/Navbar.css'; // Import custom CSS for Navbar
 
 /**
  * Navbar Component:

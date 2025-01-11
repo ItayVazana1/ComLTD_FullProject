@@ -42,7 +42,6 @@ def load_models():
             Customer,
             Package,
             AuditLog,
-            FailedLoginAttempt,
             PasswordReset,
             ContactSubmission
         )

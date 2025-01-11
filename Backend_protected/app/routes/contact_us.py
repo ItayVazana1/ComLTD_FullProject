@@ -1,11 +1,14 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from ..models.database import get_db
-from ..models.tables import User
+from ..models.tables import User, ContactSubmission
 from ..utils.loguru_config import logger
 from ..utils.email import send_email
 from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
+from decouple import config
+
 
 router = APIRouter()
 
@@ -16,6 +19,7 @@ class ContactUsRequest(BaseModel):
     email: EmailStr
     message: str
     send_copy: bool = False
+
 
 
 @router.post("/contact-us-send")
@@ -46,8 +50,20 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
 
         logger.info(f"Contact us form submitted by {sanitized_name} ({sanitized_email})")
 
-        # Admin email
-        admin_email = "admin@communication-ltd.com"  # Replace with your actual admin email
+        # Save submission to the database
+        contact_submission = ContactSubmission(
+            name=sanitized_name,
+            email=sanitized_email,
+            message=sanitized_message,
+            submitted_at=datetime.utcnow()
+        )
+        db.add(contact_submission)
+        db.commit()
+
+        logger.info("Contact us submission saved to the database.")
+
+        # Load admin email from .env
+        admin_email = config("EMAIL_SENDER")
 
         # Send email to admin
         send_email(
@@ -72,10 +88,11 @@ def contact_us(request: ContactUsRequest, db: Session = Depends(get_db)):
             )
             logger.info(f"Copy of contact us message sent to {sanitized_email}.")
 
-        return {"status": "success", "message": "Message sent successfully"}
+        return {"status": "success", "message": "Message sent and saved successfully"}
 
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.exception(f"Failed to process contact us submission: {e}")
         raise HTTPException(status_code=500, detail="Failed to process message")

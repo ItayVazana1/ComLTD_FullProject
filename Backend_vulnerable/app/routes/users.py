@@ -2,13 +2,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from uuid import uuid4
-from pydantic import BaseModel, EmailStr, ValidationError
-from ..models.tables import User, PasswordReset, AuditLog
-from ..models.database import get_db
+from pydantic import BaseModel
+from ..models.tables import generate_id
+from ..models.database import get_db_connection
 from ..utils.loguru_config import logger
-from ..utils.audit_log import create_audit_log_entry
-from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
-from ..utils.email import send_email
 from passlib.hash import bcrypt
 
 # Title: User Management Routes
@@ -18,454 +15,206 @@ router = APIRouter()
 # Title: Pydantic Models
 
 class LoginRequest(BaseModel):
-    """Model for login request data."""
     username_or_email: str
     password: str
     remember_me: bool = False
 
 class LoginResponse(BaseModel):
-    """Response model for a successful login."""
     id: str
     token: str
     status: str
 
 class RegistrationRequest(BaseModel):
-    """Model for user registration request data."""
     full_name: str
     username: str
-    email: EmailStr
+    email: str
     phone_number: str
     password: str
     confirm_password: str
     accept_terms: bool
     gender: str
 
-class UserDetailsRequest(BaseModel):
-    """Model for requesting user details."""
-    token: str
-
-class UserDetailsResponse(BaseModel):
-    """Response model for user details."""
-    id: str
-    full_name: str
-    username: str
-    email: str
-    phone_number: str
-    last_login: str
-    is_logged_in: bool
-    is_active: bool
-    gender: str
-
-    class Config:
-        orm_mode = True
-
-class UpdateUserRequest(BaseModel):
-    """Model for updating user details."""
-    full_name: str = None
-    phone_number: str = None
-    email: EmailStr = None
-    gender: str = None
-
-class PasswordResetRequest(BaseModel):
-    """Model for initiating a password reset."""
-    email: str
-
 class ResetPasswordRequest(BaseModel):
-    """Model for resetting a password."""
     reset_token: str
     new_password: str
     confirm_password: str
 
-class LogoutRequest(BaseModel):
-    """Model for user logout request."""
-    token: str
-
-class EmailValidationRequest(BaseModel):
-    """Model for validating an email."""
-    email: EmailStr
+class PasswordResetRequest(BaseModel):
+    email: str
 
 # Title: User Endpoints
 
 @router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(request: LoginRequest, db: Session = Depends(get_db_connection)):
     """
     Handle user login.
 
-    :param request: LoginRequest containing username or email and password.
-    :param db: Database session.
-    :return: Token and user ID on successful login.
+    Security Consideration:
+    - Removed input sanitization and validation.
+    - Used raw SQL query, allowing SQL Injection.
     """
     logger.info(f"Login request received for: {request.username_or_email}")
+
     try:
-        sanitized_username_or_email = sanitize_input(prevent_sql_injection(request.username_or_email))
-        sanitized_password = sanitize_input(request.password)
+        # Raw SQL query without sanitization
+        query = f"SELECT * FROM users WHERE email='{request.username_or_email}' OR username='{request.username_or_email}'"
+        user = db.execute(query).fetchone()
 
-        if sanitized_username_or_email != request.username_or_email:
-            logger.warning("XSS or SQL Injection attempt detected during login.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        user = db.query(User).filter(
-            (User.email == sanitized_username_or_email) | (User.username == sanitized_username_or_email)
-        ).first()
-
-        if not user or not bcrypt.verify(sanitized_password, user.hashed_password):
-            logger.warning(f"Login failed for user: {sanitized_username_or_email}")
+        if not user or not bcrypt.verify(request.password, user.hashed_password):
+            logger.warning(f"Login failed for user: {request.username_or_email}")
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         token = str(uuid4())
-        user.current_token = token
-        user.is_logged_in = True
-        user.last_login = datetime.utcnow()
+        db.execute(f"UPDATE users SET current_token='{token}', is_logged_in=1, last_login='{datetime.utcnow()}' WHERE id='{user.id}'")
         db.commit()
 
-        create_audit_log_entry(user_id=user.id, action="User login", db=db)
+        logger.info(f"User {user.id} logged in successfully.")
         return {"id": user.id, "token": token, "status": "success"}
 
-    except HTTPException:
-        raise
     except Exception as e:
-        db.rollback()
-        logger.exception(f"Unexpected error during login: {e}")
+        logger.error(f"Error during login: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/register")
-def register(request: RegistrationRequest, db: Session = Depends(get_db)):
+def register(request: RegistrationRequest, db: Session = Depends(get_db_connection)):
     """
     Handle user registration.
 
-    :param request: RegistrationRequest containing user details for registration.
-    :param db: Database session.
-    :return: Success message and user ID upon successful registration.
+    Security Consideration:
+    - Removed input sanitization for XSS vulnerability.
     """
     logger.info(f"Registration request received for: {request.username}")
+
     try:
-        sanitized_username = sanitize_input(prevent_sql_injection(request.username))
-        sanitized_email = sanitize_input(prevent_sql_injection(request.email))
-
-        if sanitized_username != request.username or sanitized_email != request.email:
-            logger.warning("SQL Injection or XSS attempt detected during registration.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        sanitized_password = sanitize_input(request.password)
-        sanitized_confirm_password = sanitize_input(request.confirm_password)
-
-        if sanitized_password != sanitized_confirm_password:
-            logger.warning(f"Registration failed - passwords do not match for user: {sanitized_username}")
-            raise HTTPException(status_code=400, detail="Passwords do not match")
-
-        existing_user = db.query(User).filter(
-            (User.email == sanitized_email) | (User.username == sanitized_username)
-        ).first()
-        if existing_user:
-            logger.warning(f"Registration failed - user already exists: {sanitized_username}")
-            raise HTTPException(status_code=400, detail="User with this email or username already exists")
-
-        hashed_password = bcrypt.hash(sanitized_password)
-
-        new_user = User(
-            full_name=sanitize_input(request.full_name),
-            username=sanitized_username,
-            email=sanitized_email,
-            phone_number=sanitize_input(request.phone_number),
-            hashed_password=hashed_password,
-            is_active=True,
-            is_logged_in=False,
-            current_token=None,
-            last_login=None,
-            gender=sanitize_input(request.gender)
-        )
-        db.add(new_user)
+        # Insert raw data without validation
+        query = f"INSERT INTO users (full_name, username, email, phone_number, hashed_password, is_active, is_logged_in, gender) VALUES ('{request.full_name}', '{request.username}', '{request.email}', '{request.phone_number}', '{bcrypt.hash(request.password)}', 1, 0, '{request.gender}')"
+        db.execute(query)
         db.commit()
 
-        create_audit_log_entry(user_id=new_user.id, action="User registration", db=db)
-        return {
-            "status": "success",
-            "message": "User registered successfully",
-            "id": new_user.id
-        }
+        logger.info(f"User {request.username} registered successfully.")
+        return {"status": "success", "message": "User registered successfully"}
 
-    except HTTPException:
-        raise
     except Exception as e:
-        db.rollback()
-        logger.exception(f"Error during registration for {request.username}: {e}")
+        logger.error(f"Error during registration: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
-@router.get("/user-details", response_model=UserDetailsResponse)
-def get_user_details(
-    token: str,  # Token passed as query parameter
-    db: Session = Depends(get_db)
-):
+@router.get("/user-details")
+def get_user_details(token: str, db: Session = Depends(get_db_connection)):
     """
     Fetch user details using an authentication token.
 
-    :param token: The authentication token of the user.
-    :param db: Database session.
-    :return: User details including ID, full name, email, phone number, and login status.
+    Security Consideration:
+    - Allows unsanitized input for token, enabling XSS attacks.
     """
-    sanitized_token = sanitize_input(prevent_sql_injection(token))
-    logger.info(f"Fetching user details for token: {sanitized_token}")
+    logger.info(f"Fetching user details for token: {token}")
 
-    user = db.query(User).filter(User.current_token == sanitized_token, User.is_logged_in == True).first()
-
-    if not user:
-        logger.warning(f"User not found or not logged in for token: {sanitized_token}")
-        raise HTTPException(status_code=404, detail="User not found or not logged in")
-
-    create_audit_log_entry(user_id=user.id, action="Fetched user details", db=db)
-
-    return {
-        "id": user.id,
-        "full_name": user.full_name,
-        "username": user.username,
-        "email": user.email,
-        "phone_number": user.phone_number,
-        "last_login": user.last_login.isoformat() if user.last_login else None,
-        "is_logged_in": user.is_logged_in,
-        "is_active": user.is_active,
-        "gender": user.gender
-    }
-
-@router.put("/{user_id}")
-def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(get_db)):
-    """
-    Update user details by user ID.
-
-    :param user_id: The ID of the user to be updated.
-    :param request: UpdateUserRequest containing updated user details.
-    :param db: Database session.
-    :return: Success message and the updated user ID.
-    """
-    logger.info(f"Update request received for user: {user_id}")
     try:
-        sanitized_user_id = sanitize_input(prevent_sql_injection(user_id))
-        if sanitized_user_id != user_id:
-            logger.warning("SQL Injection or XSS attempt detected in user_id.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
+        query = f"SELECT * FROM users WHERE current_token='{token}' AND is_logged_in=1"
+        user = db.execute(query).fetchone()
 
-        user = db.query(User).filter(User.id == sanitized_user_id).first()
         if not user:
-            logger.warning(f"User not found or invalid ID: {sanitized_user_id}")
-            raise HTTPException(status_code=400, detail="Invalid user ID detected.")
+            logger.warning(f"User not found or not logged in for token: {token}")
+            raise HTTPException(status_code=404, detail="User not found or not logged in")
 
-        if request.full_name:
-            sanitized_full_name = sanitize_input(request.full_name)
-            if sanitized_full_name != request.full_name:
-                logger.warning("XSS attempt detected in full_name.")
-                raise HTTPException(status_code=400, detail="Invalid input detected.")
-            user.full_name = sanitized_full_name
+        logger.info(f"User details fetched successfully for token: {token}")
+        return {
+            "id": user.id,
+            "full_name": user.full_name,
+            "username": user.username,
+            "email": user.email,
+            "phone_number": user.phone_number,
+            "last_login": user.last_login,
+            "is_logged_in": user.is_logged_in,
+            "is_active": user.is_active,
+            "gender": user.gender
+        }
 
-        if request.phone_number:
-            sanitized_phone_number = sanitize_input(request.phone_number)
-            if sanitized_phone_number != request.phone_number:
-                logger.warning("XSS attempt detected in phone_number.")
-                raise HTTPException(status_code=400, detail="Invalid input detected.")
-            user.phone_number = sanitized_phone_number
-
-        if request.email:
-            sanitized_email = sanitize_input(prevent_sql_injection(request.email))
-            if sanitized_email != request.email:
-                logger.warning("XSS or SQL Injection attempt detected in email.")
-                raise HTTPException(status_code=400, detail="Invalid input detected.")
-            existing_user = db.query(User).filter(User.email == sanitized_email, User.id != sanitized_user_id).first()
-            if existing_user:
-                logger.warning(f"Email already in use: {sanitized_email}")
-                raise HTTPException(status_code=400, detail="Email already in use")
-            user.email = sanitized_email
-
-        if request.gender:
-            sanitized_gender = sanitize_input(request.gender)
-            if sanitized_gender != request.gender:
-                logger.warning("XSS attempt detected in gender.")
-                raise HTTPException(status_code=400, detail="Invalid input detected.")
-            user.gender = sanitized_gender
-
-        db.commit()
-        db.refresh(user)
-
-        create_audit_log_entry(user_id=sanitized_user_id, action="Updated user details", db=db)
-        logger.info(f"User updated successfully: {sanitized_user_id}")
-        return {"status": "success", "message": "User updated successfully", "id": sanitized_user_id}
-
-    except HTTPException:
-        raise
     except Exception as e:
-        db.rollback()
-        logger.exception(f"Error updating user {sanitized_user_id}: {e}")
+        logger.error(f"Error fetching user details: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.post("/password-reset")
-def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
+def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db_connection)):
     """
     Initiate a password reset for a user by sending a reset token to their email.
 
-    :param request: PasswordResetRequest containing the user's email.
-    :param db: Database session.
-    :return: A success message with the reset token.
+    Security Consideration:
+    - Allows SQL Injection by using raw input in queries.
     """
     logger.info(f"Password reset request received for: {request.email}")
+
     try:
-        # Validate email format using Pydantic model
-        try:
-            validated_request = EmailValidationRequest(email=request.email)
-        except ValidationError as ve:
-            logger.warning(f"Invalid email format: {request.email}. Details: {ve}")
-            raise HTTPException(status_code=400, detail="Invalid email format")
-
-        sanitized_email = prevent_sql_injection(validated_request.email)
-        if sanitized_email != request.email:
-            logger.warning("SQL Injection attempt detected during password reset.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        # Query user
-        try:
-            user = db.query(User).filter(User.email == sanitized_email).first()
-        except Exception as e:
-            logger.error(f"Database query failed for email {sanitized_email}: {e}")
-            raise HTTPException(status_code=500, detail="Database error occurred")
+        query = f"SELECT * FROM users WHERE email='{request.email}'"
+        user = db.execute(query).fetchone()
 
         if not user:
-            logger.warning(f"Password reset failed - user not found: {sanitized_email}")
+            logger.warning(f"Password reset failed - user not found: {request.email}")
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Generate password reset token
-        try:
-            reset_token = str(uuid4())
-            token_expiry = datetime.utcnow() + timedelta(hours=1)
+        reset_token = str(uuid4())
+        token_expiry = datetime.utcnow() + timedelta(hours=1)
 
-            password_reset = PasswordReset(
-                user_id=user.id,
-                reset_token=reset_token,
-                token_expiry=token_expiry,
-                used=False,
-            )
-            db.add(password_reset)
-            db.commit()
-        except Exception as e:
-            logger.error(f"Failed to create password reset token for user {user.id}: {e}")
-            db.rollback()
-            raise HTTPException(status_code=500, detail="Failed to create password reset token")
+        query = f"INSERT INTO password_resets (user_id, reset_token, token_expiry, used) VALUES ('{user.id}', '{reset_token}', '{token_expiry}', 0)"
+        db.execute(query)
+        db.commit()
 
-        # Send password reset email
-        email_subject = "Password Reset Request"
-        email_body = f"""
-        Hello {user.full_name},
+        logger.info(f"Password reset token generated for user: {user.id}")
+        return {"status": "success", "message": "Password reset token generated"}
 
-        You requested to reset your password. Use the token below to reset your password:
-        Token: {reset_token}
-
-        Note: This token is valid for 1 hour.
-
-        If you did not request this, please ignore this email.
-
-        Best regards,
-        Communication LTD Team
-        """
-        try:
-            send_email(recipient=[sanitized_email], subject=email_subject, body=email_body)
-        except Exception as e:
-            logger.error(f"Failed to send password reset email to {sanitized_email}: {e}")
-            raise HTTPException(status_code=500, detail="Failed to send email")
-
-        logger.info(f"Password reset email sent to {sanitized_email}")
-        return {"status": "success", "reset_token": reset_token, "message": "Password reset token generated and email sent"}
-
-    except HTTPException as http_exc:
-        logger.warning(f"Handled HTTP exception: {http_exc.detail}")
-        raise
     except Exception as e:
-        logger.exception(f"Unexpected error during password reset: {e}")
+        logger.error(f"Error during password reset: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db_connection)):
     """
     Reset a user's password using a valid reset token.
 
-    :param request: ResetPasswordRequest containing the reset token and new password details.
-    :param db: Database session.
-    :return: A success message upon successful password reset.
+    Security Consideration:
+    - No validation on input, enabling SQL Injection.
     """
     logger.info(f"Password reset attempt with token: {request.reset_token}")
-    try:
-        sanitized_reset_token = prevent_sql_injection(request.reset_token)  # Protects against SQL Injection
-        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_reset_token).first()
 
-        if not password_reset or password_reset.used:
+    try:
+        query = f"SELECT * FROM password_resets WHERE reset_token='{request.reset_token}' AND used=0"
+        password_reset = db.execute(query).fetchone()
+
+        if not password_reset:
             logger.warning("Invalid or used password reset token")
             raise HTTPException(status_code=400, detail="Invalid or used token")
 
-        if password_reset.token_expiry < datetime.utcnow():
-            logger.warning("Password reset token expired")
-            raise HTTPException(status_code=400, detail="Token expired")
+        query = f"UPDATE users SET hashed_password='{bcrypt.hash(request.new_password)}' WHERE id='{password_reset.user_id}'"
+        db.execute(query)
 
-        sanitized_new_password = sanitize_input(request.new_password)  # Protects against XSS
-        sanitized_confirm_password = sanitize_input(request.confirm_password)  # Protects against XSS
-
-        if sanitized_new_password != request.new_password or sanitized_confirm_password != request.confirm_password:
-            logger.warning("Potential XSS attempt detected in password fields.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        if sanitized_new_password != sanitized_confirm_password:
-            logger.warning("Passwords do not match")
-            raise HTTPException(status_code=400, detail="Passwords do not match")
-
-        user = db.query(User).filter(User.id == password_reset.user_id).first()
-        if not user:
-            logger.error("Associated user not found")
-            raise HTTPException(status_code=404, detail="User not found")
-
-        user.hashed_password = bcrypt.hash(sanitized_new_password)  # Securely hash new password
-        password_reset.used = True
-
+        query = f"UPDATE password_resets SET used=1 WHERE reset_token='{request.reset_token}'"
+        db.execute(query)
         db.commit()
 
-        create_audit_log_entry(user_id=user.id, action="Password reset successful", db=db)
+        logger.info(f"Password reset successful for user: {password_reset.user_id}")
         return {"status": "success", "message": "Password reset successful"}
 
-    except HTTPException:
-        raise
     except Exception as e:
-        db.rollback()
-        logger.exception(f"Error during password reset: {e}")
+        logger.error(f"Error during password reset: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/logout")
-def logout(request: LogoutRequest, db: Session = Depends(get_db)):
+def logout(token: str, db: Session = Depends(get_db_connection)):
     """
     Handle user logout by invalidating the current token.
 
-    :param request: LogoutRequest containing the authentication token.
-    :param db: Database session.
-    :return: Success message upon successful logout.
+    Security Consideration:
+    - No validation of the token, allowing unauthorized actions.
     """
-    logger.info(f"Logout request received with token: {request.token}")
+    logger.info(f"Logout request received with token: {token}")
+
     try:
-        sanitized_token = sanitize_input(prevent_sql_injection(request.token))
-
-        if sanitized_token != request.token:
-            logger.warning("Potential XSS or SQL Injection attempt detected in token.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        user = db.query(User).filter(User.current_token == sanitized_token).first()
-
-        if not user:
-            logger.warning(f"Logout failed - no user found with token: {request.token}")
-            raise HTTPException(status_code=401, detail="Invalid token or user not logged in")
-
-        user.is_logged_in = False
-        user.current_token = None
+        query = f"UPDATE users SET is_logged_in=0, current_token=NULL WHERE current_token='{token}'"
+        db.execute(query)
         db.commit()
 
-        create_audit_log_entry(user_id=user.id, action="User logout", db=db)
-        logger.info(f"User {user.id} successfully logged out")
+        logger.info(f"User with token {token} logged out successfully.")
         return {"status": "success", "message": "User logged out successfully"}
 
-    except HTTPException:
-        raise
     except Exception as e:
-        db.rollback()
-        logger.exception(f"Error during logout: {e}")
+        logger.error(f"Error during logout: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

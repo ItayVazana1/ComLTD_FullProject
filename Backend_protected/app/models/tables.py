@@ -62,6 +62,9 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     phone_number = Column(String(20), nullable=True)
     hashed_password = Column(String(255), nullable=False)
+    salt = Column(String(255), nullable=False)  # New column for storing salt
+    password_history = Column(Text, nullable=True)  # JSON-formatted string for password history
+    failed_attempts = Column(Integer, default=0)  # New column for tracking failed login attempts
     is_active = Column(Boolean, default=True)
     is_logged_in = Column(Boolean, default=False)
     current_token = Column(String(255), nullable=True)
@@ -153,28 +156,6 @@ class AuditLog(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logger.debug(f"AuditLog initialized for User ID: {self.user_id}, Action: {self.action}")
-
-# Failed Login Attempts Table
-class FailedLoginAttempt(Base):
-    """
-    Table for storing failed login attempts.
-
-    Attributes:
-        id: Primary key, UUID.
-        username: Username used in the failed attempt.
-        ip_address: IP address of the request.
-        timestamp: Timestamp of the failed attempt.
-    """
-    __tablename__ = "failed_login_attempts"
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    username = Column(String(255), nullable=False)
-    ip_address = Column(String(50), nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        logger.debug(f"FailedLoginAttempt initialized: Username: {self.username}, IP: {self.ip_address}")
 
 # Contact Form Submissions Table
 class ContactSubmission(Base):

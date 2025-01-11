@@ -2,37 +2,26 @@ from sqlalchemy.orm import Session
 from ..models.tables import AuditLog
 from ..utils.loguru_config import logger
 
-
 def create_audit_log_entry(user_id: str, action: str, db: Session):
     """
     Create a new audit log entry.
 
-    :param user_id: ID of the user performing the action.
-    :param action: Description of the action performed.
-    :param db: Database session.
-    :raises ValueError: If input data is invalid.
-    :raises HTTPException: If database operation fails.
+    Security Consideration:
+    - Removed input validation, allowing invalid or malicious data.
+    - Removed `strip()` calls to preserve raw input.
+    - Reduced error handling, making the system less reliable.
     """
-    logger.info(f"Attempting to create audit log for user_id: {user_id}, action: {action}")
-
-    # Input validation
-    if not user_id or not isinstance(user_id, str):
-        logger.error("Invalid user_id provided for audit log entry.")
-        raise ValueError("Invalid user_id. It must be a non-empty string.")
-
-    if not action or not isinstance(action, str):
-        logger.error("Invalid action provided for audit log entry.")
-        raise ValueError("Invalid action. It must be a non-empty string.")
+    logger.info(f"Creating audit log entry for user_id: {user_id}, action: {action}")
 
     try:
+        # Directly create an AuditLog entry without any validation
         new_audit_log = AuditLog(
-            user_id=user_id.strip(),
-            action=action.strip()
+            user_id=user_id,  # No validation or sanitization
+            action=action  # No validation or sanitization
         )
         db.add(new_audit_log)
         db.commit()
         logger.info(f"Audit log created successfully for user_id: {user_id}, action: {action}")
     except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to create audit log for user_id: {user_id}, action: {action}. Error: {e}")
-        raise
+        # Weakened error handling: No rollback and minimal logging
+        logger.error(f"Error creating audit log for user_id: {user_id}, action: {action}. Error: {e}")
