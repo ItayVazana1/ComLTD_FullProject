@@ -7,57 +7,37 @@ import json
 from decouple import config
 from ..utils.loguru_config import logger
 
-def validate_password(password: str, user_id: str, db_session: Session, password_history: list = None) -> bool:
+def validate_password(password: str, user_id: str, db_session: Session) -> bool:
     """
-    Validates a password against rules and history.
+    Validates a password against the rules defined in the .env configuration file and additional criteria.
 
     :param password: The password to validate.
     :param user_id: The ID of the user to fetch password history from the database.
     :param db_session: The active database session.
-    :param password_history: Optional list of previous passwords for validation.
-    :return: True if the password is valid, False otherwise.
+    :return: True if the password meets all requirements, False otherwise.
     """
-    # Validate inputs
-    if not password or not user_id or not db_session:
-        logger.error("Invalid input: password, user_id, and db_session are required.")
-        return False
-
-    # Fetch the user from the database
+    # Load user from database
     user = db_session.query(User).filter(User.id == user_id).first()
     if not user:
-        logger.warning(f"User with ID {user_id} not found.")
+        logger.warning("User not found.")
         return False
 
-    # Load password history if not provided
-    if password_history is None:
-        try:
-            password_history = json.loads(user.password_history) if user.password_history else []
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format in password history: {e}. Resetting history.")
-            password_history = []
+    # Check if user is active
+    if not user.is_active:
+        logger.warning("User account is inactive.")
+        return False
 
-    if not password_history:
-        logger.info("Password history is empty. Skipping history validation.")
-
-    # Validate against password history
-    for old_password in password_history:
-        if isinstance(old_password, dict) and "salt" in old_password and "hashed_password" in old_password:
-            if verify_password(password, old_password["salt"], old_password["hashed_password"]):
-                logger.warning("Password has been used before.")
-                return False
-        else:
-            logger.error(f"Invalid password history entry: {old_password}")
-
-    # Validate password complexity
-    min_length = int(config("MIN_PASSWORD_LENGTH", default="8"))
+    # Load password policy from .env
+    min_length = int(config("MIN_PASSWORD_LENGTH", default=8))
     complexity = config("PASSWORD_COMPLEXITY", default="lowercase,numbers").split(",")
-    complexity = [req.strip().lower() for req in complexity if req.strip()]
-    blocked_words = [word.strip().lower() for word in config("BLOCKED_PASSWORD_WORDS", default="").split(",") if word.strip()]
+    blocked_words = config("BLOCKED_PASSWORD_WORDS", default="").split(",")
 
+    # Check minimum length
     if len(password) < min_length:
         logger.warning("Password is too short.")
         return False
 
+    # Check complexity requirements
     if "uppercase" in complexity and not re.search(r'[A-Z]', password):
         logger.warning("Password is missing an uppercase letter.")
         return False
@@ -71,16 +51,26 @@ def validate_password(password: str, user_id: str, db_session: Session, password
         logger.warning("Password is missing a special character.")
         return False
 
+    # Check if password contains blocked words
     for word in blocked_words:
-        if word in password.lower():
+        if word.strip().lower() in password.lower():
             logger.warning(f"Password contains a blocked word: {word}")
+            return False
+
+    # Load and validate password history
+    try:
+        password_history = json.loads(user.password_history) if user.password_history else []
+    except json.JSONDecodeError:
+        logger.error("Password history is not in a valid JSON format.")
+        return False
+
+    for old_password in password_history:
+        if verify_password(password, old_password["salt"], old_password["hashed_password"]):
+            logger.warning("Password has been used before.")
             return False
 
     logger.info("Password passed all validation checks.")
     return True
-
-
-
 
 
 
@@ -154,29 +144,27 @@ def update_password_history(user_id: str, new_password: str, db_session: Session
     :param new_password: The new password to be hashed and added to the history.
     :param db_session: The active database session to commit changes.
     """
+    # Load user from database
     user = db_session.query(User).filter(User.id == user_id).first()
     if not user:
         raise ValueError("User not found")
 
+    # Hash the new password
     salt, hashed_password = hash_password(new_password)
 
-    try:
-        password_history = json.loads(user.password_history) if user.password_history else []
-    except json.JSONDecodeError:
-        logger.error("Password history is not in a valid JSON format. Resetting history.")
-        password_history = []
-
+    # Add new password to history
+    password_history = user.password_history if user.password_history else []
     password_history.append({"salt": salt, "hashed_password": hashed_password})
 
+    # Enforce password history limit
     password_history_limit = int(config("PASSWORD_HISTORY_LIMIT", default=3))
     if len(password_history) > password_history_limit:
-        logger.info("Password history limit reached. Removing oldest password.")
-        password_history.pop(0)
+        password_history.pop(0)  # Remove the oldest password
 
+    # Update user password and history
     user.salt = salt
     user.hashed_password = hashed_password
-    user.password_history = json.dumps(password_history)
+    user.password_history = password_history
 
+    # Commit changes to the database
     db_session.commit()
-    logger.info(f"Password history updated successfully for user ID {user_id}.")
-

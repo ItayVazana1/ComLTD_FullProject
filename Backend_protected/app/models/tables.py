@@ -201,6 +201,7 @@ class PasswordReset(Base):
     token_expiry = Column(DateTime, nullable=False)
     used = Column(Boolean, default=False)
 
+
     user = relationship("User", back_populates="password_resets")
 
     def __init__(self, *args, **kwargs):

@@ -12,7 +12,10 @@ def sanitize_input(input_value: str) -> str:
         logger.error("Input for sanitization is not a string.")
         raise ValueError("Input must be a string.")
     sanitized_value = escape(input_value)
-    logger.debug(f"Sanitized input: Original: {input_value}, Sanitized: {sanitized_value}")
+    if sanitized_value != input_value:
+        logger.debug(f"Sanitized input: Original: {input_value}, Sanitized: {sanitized_value}")
+    else:
+        logger.debug(f"Input --> {input_value} is valid!")
     return sanitized_value
 
 def prevent_sql_injection(input_value: str) -> str:
@@ -34,7 +37,7 @@ def prevent_sql_injection(input_value: str) -> str:
     sanitized_value = input_value
     for pattern in dangerous_patterns:
         if re.search(pattern, sanitized_value):
-            logger.warning(f"Potential SQL injection pattern detected: {pattern} in {sanitized_value}")
+            logger.warning(f"Potential SQL injection pattern detected in {sanitized_value}")
         sanitized_value = re.sub(pattern, "", sanitized_value)
 
     logger.debug(f"SQL-safe input: Original: {input_value}, Sanitized: {sanitized_value}")

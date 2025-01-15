@@ -1,10 +1,12 @@
 import hashlib
+
+import sqlalchemy
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from uuid import uuid4
 from pydantic import BaseModel, EmailStr, ValidationError
-from ..models.tables import User, PasswordReset
+from ..models.tables import User, PasswordReset, Gender
 from ..models.database import get_db
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
@@ -73,11 +75,9 @@ class PasswordResetRequest(BaseModel):
     """Model for initiating a password reset."""
     email: str
 
-class ResetPasswordRequest(BaseModel):
+class TokenValidationRequest(BaseModel):
     """Model for resetting a password."""
     reset_token: str
-    new_password: str
-    confirm_password: str
 
 class LogoutRequest(BaseModel):
     """Model for user logout request."""
@@ -86,6 +86,28 @@ class LogoutRequest(BaseModel):
 class EmailValidationRequest(BaseModel):
     """Model for validating an email."""
     email: EmailStr
+
+class ChangePasswordRequest(BaseModel):
+    """Model for changing password."""
+    reset_token: str
+    new_password: str
+    confirm_password: str
+
+class ResetPasswordRequest(BaseModel):
+    """Model for changing password (after token)."""
+    reset_token: str
+    new_password: str
+    confirm_password: str
+
+class ChangePasswordAuthenticatedRequest(BaseModel):
+    username: str
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+class TokenValidationRequest(BaseModel):
+    token: str
+
 
 # Title: User Endpoints
 
@@ -116,6 +138,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             logger.warning(f"Login failed for user: {sanitized_username_or_email}")
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
+        # Check if user is already logged in
+        if user.is_logged_in:
+            logger.warning(f"User {sanitized_username_or_email} is already logged in.")
+            raise HTTPException(status_code=409, detail="User is already logged in")
+
         # Check if user is active
         if not user.is_active:
             logger.warning(f"Login attempt for inactive user: {sanitized_username_or_email}")
@@ -125,7 +152,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         if not verify_password(sanitized_password, user.salt, user.hashed_password):
             user.failed_attempts += 1
 
-            # Check if failed attempts to exceed the limit
+            # Check if failed attempts exceed the limit
             if check_login_attempts(user.failed_attempts):
                 user.is_active = False
                 logger.warning(f"User {sanitized_username_or_email} locked due to too many failed login attempts")
@@ -156,14 +183,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 
 
+
 @router.post("/logout")
 def logout(request: LogoutRequest, db: Session = Depends(get_db)):
     """
     Handle user logout by invalidating the current token.
-
-    :param request: LogoutRequest containing the authentication token.
-    :param db: Database session.
-    :return: Success message upon successful logout.
     """
     logger.info(f"Logout request received with token: {request.token}")
     try:
@@ -179,12 +203,13 @@ def logout(request: LogoutRequest, db: Session = Depends(get_db)):
             logger.warning(f"Logout failed - no user found with token: {request.token}")
             raise HTTPException(status_code=401, detail="Invalid token or user not logged in")
 
+        # Update user status
         user.is_logged_in = False
         user.current_token = None
         db.commit()
+        logger.info(f"User {user.id} successfully logged out. is_logged_in: {user.is_logged_in}, current_token: {user.current_token}")
 
         create_audit_log_entry(user_id=user.id, action="User logout", db=db)
-        logger.info(f"User {user.id} successfully logged out")
         return {"status": "success", "message": "User logged out successfully"}
 
     except HTTPException:
@@ -196,40 +221,42 @@ def logout(request: LogoutRequest, db: Session = Depends(get_db)):
 
 
 
+
 @router.post("/register")
 def register(request: RegistrationRequest, db: Session = Depends(get_db)):
     """
     Handle user registration.
-
-    :param request: RegistrationRequest containing user details for registration.
-    :param db: Database session.
-    :return: Success message and user ID upon successful registration.
     """
     logger.info(f"Registration request received for: {request.username}")
     try:
         sanitized_username = sanitize_input(prevent_sql_injection(request.username))
         sanitized_email = sanitize_input(prevent_sql_injection(request.email))
+        sanitized_gender = sanitize_input(request.gender)
 
+        # Validate gender value
+        if sanitized_gender not in [gender.value for gender in Gender]:
+            logger.warning(f"Invalid gender value: {sanitized_gender}")
+            raise HTTPException(status_code=400, detail="Invalid input detected")
+
+        # Validate email and username for SQL Injection or XSS
         if sanitized_username != request.username or sanitized_email != request.email:
             logger.warning("SQL Injection or XSS attempt detected during registration.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
+            raise HTTPException(status_code=400, detail="Invalid input detected")
 
         sanitized_password = sanitize_input(request.password)
         sanitized_confirm_password = sanitize_input(request.confirm_password)
 
-        # Check if passwords match
         if sanitized_password != sanitized_confirm_password:
-            logger.warning(f"Registration failed - passwords do not match for user: {sanitized_username}")
+            logger.warning(f"Passwords do not match for user: {sanitized_username}")
             raise HTTPException(status_code=400, detail="Passwords do not match")
 
         existing_user = db.query(User).filter(
             (User.email == sanitized_email) | (User.username == sanitized_username)
         ).first()
         if existing_user:
-            logger.warning(f"Registration failed - user already exists: {sanitized_username}")
+            logger.warning(f"User already exists: {sanitized_username}")
             raise HTTPException(status_code=400, detail="User with this email or username already exists")
 
-        # Create a new user object
         salt, hashed_password = hash_password(sanitized_password)
         new_user = User(
             full_name=sanitize_input(request.full_name),
@@ -242,34 +269,31 @@ def register(request: RegistrationRequest, db: Session = Depends(get_db)):
             is_logged_in=False,
             current_token=None,
             last_login=None,
-            gender=sanitize_input(request.gender),
+            gender=sanitized_gender,
             password_history=json.dumps([]),
             failed_attempts=0
         )
         db.add(new_user)
         db.commit()
 
-        # Validate password complexity after user creation
         if not validate_password(sanitized_password, user_id=new_user.id, db_session=db):
             logger.warning(f"Password does not meet complexity requirements for user: {sanitized_username}")
-            db.delete(new_user)  # Clean up the newly created user
+            db.delete(new_user)
             db.commit()
             raise HTTPException(status_code=400, detail="Password does not meet complexity requirements")
 
         create_audit_log_entry(user_id=new_user.id, action="User registration", db=db)
-        return {
-            "status": "success",
-            "message": "User registered successfully",
-            "id": new_user.id
-        }
+        return {"status": "success", "message": "User registered successfully", "id": new_user.id}
 
+    except sqlalchemy.exc.DataError as de:
+        logger.error(f"Invalid data for database field: {de}")
+        raise HTTPException(status_code=400, detail="Invalid input detected")
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         logger.exception(f"Error during registration for {request.username}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 
 
@@ -377,7 +401,7 @@ def update_user(user_id: str, request: UpdateUserRequest, db: Session = Depends(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/password-reset")
+@router.post("/ask-for-password-reset")
 def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
     """
     Initiate a password reset for a user by sending a reset token to their email.
@@ -458,18 +482,18 @@ def request_password_reset(request: PasswordResetRequest, db: Session = Depends(
 
 
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def validate_and_prepare_reset_token(request: TokenValidationRequest, db: Session = Depends(get_db)):
     """
-    Reset a user's password using a valid reset token.
+    Validate the password reset token and prepare for password reset.
 
-    :param request: ResetPasswordRequest containing the reset token and new password details.
+    :param request: TokenValidationRequest containing the reset token.
     :param db: Database session.
-    :return: A success message upon successful password reset.
+    :return: A success message with the username and preparation status.
     """
-    logger.info(f"Password reset attempt with token: {request.reset_token}")
+    logger.info(f"Password reset validation request received with token: {request.token}")
     try:
-        sanitized_reset_token = prevent_sql_injection(request.reset_token)  # Protects against SQL Injection
-        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_reset_token).first()
+        sanitized_token = sanitize_input(prevent_sql_injection(request.token))
+        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_token).first()
 
         if not password_reset or password_reset.used:
             logger.warning("Invalid or used password reset token")
@@ -479,81 +503,224 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
             logger.warning("Password reset token expired")
             raise HTTPException(status_code=400, detail="Token expired")
 
-        sanitized_new_password = sanitize_input(request.new_password)  # Protects against XSS
-        sanitized_confirm_password = sanitize_input(request.confirm_password)  # Protects against XSS
+        # Fetch the associated user
+        user = db.query(User).filter(User.id == password_reset.user_id).first()
+        if not user:
+            logger.error("Associated user not found")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Mark token as validated
+        password_reset.validated = True
+        db.commit()
+
+        return {
+            "status": "success",
+            "username": user.username,
+            "message": "Token is valid. Proceed to the password reset form"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error during password reset token validation: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/confirm-reset-password")
+def confirm_reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Confirm password reset with a new password.
+
+    :param request: ResetPasswordRequest containing the reset token and new password details.
+    :param db: Database session.
+    :return: A success message upon successful password reset.
+    """
+    logger.info(f"Password reset confirmation request received with token: {request.reset_token}")
+    try:
+        # Validate reset token
+        sanitized_token = sanitize_input(prevent_sql_injection(request.reset_token))
+        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_token).first()
+
+        if not password_reset:
+            logger.warning("Reset token not found or invalid")
+            raise HTTPException(status_code=400, detail="Invalid or unused token")
+
+        # Fetch the associated user
+        user = db.query(User).filter(User.id == password_reset.user_id).first()
+        if not user:
+            logger.error("Associated user not found")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Validate passwords
+        if request.new_password != request.confirm_password:
+            logger.warning("Passwords do not match")
+            raise HTTPException(status_code=400, detail="Passwords do not match")
+
+        # Load password history
+        try:
+            password_history = json.loads(user.password_history) if user.password_history else []
+        except json.JSONDecodeError:
+            logger.error("Password history is not in a valid JSON format. Resetting history.")
+            password_history = []
+
+        # Validate new password
+        if not validate_password(
+            password=request.new_password,
+            user_id=user.id,
+            db_session=db,
+            password_history=password_history
+        ):
+            logger.warning("Password does not meet complexity requirements or is in history")
+            raise HTTPException(
+                status_code=400,
+                detail="Password does not meet complexity requirements or has been used before"
+            )
+
+        # Update user's password
+        update_password_history(user_id=user.id, new_password=request.new_password, db_session=db)
+
+        # Mark token as used
+        password_reset.used = True
+        db.commit()
+
+        logger.info(f"Password successfully reset for user {user.username}")
+        return {"status": "success", "message": "Password successfully reset"}
+
+    except HTTPException as http_exc:
+        logger.warning(f"HTTP exception: {http_exc.detail}")
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.exception(f"Error during password reset confirmation: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
+@router.post("/change-password")
+def change_password_with_token(request: ChangePasswordRequest, db: Session = Depends(get_db)):
+    """
+    Change a user's password using a reset token.
+
+    :param request: ResetPasswordRequest containing the reset token and new password.
+    :param db: Database session.
+    :return: A success message upon successful password change.
+    """
+    logger.info(f"Password change request received with token: {request.reset_token}")
+    try:
+        # Validate the token
+        sanitized_token = sanitize_input(prevent_sql_injection(request.reset_token))
+        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_token).first()
+
+        if not password_reset or password_reset.used:
+            logger.warning("Invalid or used reset token")
+            raise HTTPException(status_code=400, detail="Invalid or used token")
+
+        if password_reset.token_expiry < datetime.utcnow():
+            logger.warning("Reset token expired")
+            raise HTTPException(status_code=400, detail="Token expired")
+
+        # Fetch the associated user
+        user = db.query(User).filter(User.id == password_reset.user_id).first()
+        if not user:
+            logger.error("User not found")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Validate the new password
+        sanitized_new_password = sanitize_input(request.new_password)
+        sanitized_confirm_password = sanitize_input(request.confirm_password)
 
         if sanitized_new_password != sanitized_confirm_password:
             logger.warning("Passwords do not match")
             raise HTTPException(status_code=400, detail="Passwords do not match")
 
-        user = db.query(User).filter(User.id == password_reset.user_id).first()
-        if not user:
-            logger.error("Associated user not found")
-            raise HTTPException(status_code=404, detail="User not found")
-
-        # Validate password complexity and history
         if not validate_password(sanitized_new_password, password_history=user.password_history):
             logger.warning("Password does not meet complexity requirements or is in history")
-            raise HTTPException(status_code=400, detail="Password does not meet complexity requirements or has been used before")
+            raise HTTPException(
+                status_code=400,
+                detail="Password does not meet complexity requirements or has been used before"
+            )
 
-        # Update the user's password and history using validators
+        # Update the user's password
         update_password_history(user, sanitized_new_password)
 
-        # Mark the password reset token as used
+        # Mark the token as used
         password_reset.used = True
         db.commit()
 
-        create_audit_log_entry(user_id=user.id, action="Password reset successful", db=db)
-        return {"status": "success", "message": "Password reset successful"}
+        logger.info(f"Password successfully changed for user {user.id}")
+        return {"status": "success", "message": "Password successfully changed"}
 
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.exception(f"Error during password reset: {e}")
+        logger.exception(f"Error during password change: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/change-password")
-def change_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+@router.post("/change-password-authenticated")
+def change_password_authenticated(
+    request: ChangePasswordAuthenticatedRequest,
+    db: Session = Depends(get_db)
+):
     """
-    Change a user's password using their current password and a new password.
+    Allow authenticated users to change their password by providing the username and current password.
 
-    :param request: ResetPasswordRequest containing current password and new password details.
+    :param request: ChangePasswordAuthenticatedRequest containing username, current password, and new password details.
     :param db: Database session.
     :return: A success message upon successful password change.
     """
-    logger.info(f"Password change request received for reset token: {request.reset_token}")
+    logger.info(f"Password change request received for user: {request.username}")
     try:
-        sanitized_reset_token = sanitize_input(prevent_sql_injection(request.reset_token))
-        password_reset = db.query(PasswordReset).filter(PasswordReset.reset_token == sanitized_reset_token).first()
+        # Validate inputs
+        if not request.username or not request.current_password or not request.new_password or not request.confirm_password:
+            raise HTTPException(status_code=400, detail="All fields are required.")
 
-        if not password_reset or password_reset.used:
-            logger.warning("Invalid or used reset token detected.")
-            raise HTTPException(status_code=400, detail="Invalid or used reset token")
+        # Sanitize inputs
+        sanitized_username = sanitize_input(request.username)
+        sanitized_current_password = sanitize_input(request.current_password)
+        sanitized_new_password = sanitize_input(request.new_password)
+        sanitized_confirm_password = sanitize_input(request.confirm_password)
 
-        user = db.query(User).filter(User.id == password_reset.user_id).first()
+        # Fetch the user from the database
+        user = db.query(User).filter(User.username == sanitized_username).first()
         if not user:
-            logger.error("Associated user not found")
+            logger.warning(f"User not found: {sanitized_username}")
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Verify the current password
-        if not verify_password(request.new_password, user.salt, user.hashed_password):
-            logger.warning("Current password does not match")
+        # Validate current password
+        if not verify_password(sanitized_current_password, user.salt, user.hashed_password):
+            logger.warning(f"Incorrect current password for user: {sanitized_username}")
             raise HTTPException(status_code=400, detail="Current password does not match")
 
-        # Validate the new password using validators
-        if not validate_password(request.new_password, user.id, db):
-            logger.warning("New password does not meet complexity requirements or is in history")
+        # Validate new password complexity and history
+        if sanitized_new_password != sanitized_confirm_password:
+            logger.warning(f"Passwords do not match for user: {sanitized_username}")
+            raise HTTPException(status_code=400, detail="New passwords do not match")
+
+        # Load password history
+        try:
+            password_history = json.loads(user.password_history) if user.password_history else []
+        except json.JSONDecodeError:
+            logger.error("Invalid password history format. Resetting history.")
+            password_history = []
+
+        # Validate new password
+        if not validate_password(
+            sanitized_new_password,
+            user_id=user.id,
+            db_session=db,
+            password_history=password_history
+        ):
+            logger.warning(f"Password does not meet requirements for user: {sanitized_username}")
             raise HTTPException(
                 status_code=400,
                 detail="New password does not meet complexity requirements or has been used before"
             )
 
-        # Update the password and history using validators
-        update_password_history(user.id, request.new_password, db)
-
-        logger.info(f"Password successfully updated for user {user.id}")
+        # Update the user's password and history
+        update_password_history(user.id, sanitized_new_password, db_session=db)
+        logger.info(f"Password successfully changed for user {sanitized_username}")
         create_audit_log_entry(user_id=user.id, action="Password changed successfully", db=db)
 
         return {"status": "success", "message": "Password changed successfully"}
@@ -562,5 +729,7 @@ def change_password(request: ResetPasswordRequest, db: Session = Depends(get_db)
         raise
     except Exception as e:
         db.rollback()
-        logger.exception(f"Error during password change: {e}")
+        logger.exception(f"Error during password change for user {request.username}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
