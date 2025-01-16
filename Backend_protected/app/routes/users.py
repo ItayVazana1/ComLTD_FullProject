@@ -220,8 +220,6 @@ def logout(request: LogoutRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-
-
 @router.post("/register")
 def register(request: RegistrationRequest, db: Session = Depends(get_db)):
     """
