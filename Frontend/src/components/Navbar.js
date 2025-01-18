@@ -12,12 +12,6 @@ function Navbar({ username, onLogout }) {
   return (
     <header id="navbar" className="navbar d-flex justify-content-between align-items-center p-3">
       {/* Search box for user input */}
-      <input
-        id="search-box"
-        type="text"
-        className="form-control w-25"
-        placeholder="You can search here.."
-      />
       <div className="navbar-right d-flex align-items-center">
         {/* User icon and username */}
         <div id="user-info" className="user-info d-flex align-items-center me-3">

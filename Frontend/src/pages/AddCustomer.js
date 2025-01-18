@@ -1,84 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import '../assets/styles/AddCustomer.css';
+import { useUser } from '../context/UserContext'; // Access UserContext
+import { fetchDataPlans, addCustomer } from '../services/api'; // Import relevant API functions
 
-/**
- * AddCustomer Component:
- * Displays a form for adding a new customer with validation.
- */
-function AddCustomer({ username, onLogout }) {
+function AddCustomer({ onLogout }) {
+  const { userData } = useUser(); // Access UserContext
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+    email_address: '',
     address: '',
-    package: '',
-    creditCard: '',
+    package_id: '',
+    gender: '',
   });
 
+  const [packages, setPackages] = useState([]); // State to store package options
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(''); // Success message
 
-  const packages = ['Essential Plan', 'Streamer Lite', 'Unlimited Pro', 'Global Connect'];
+  useEffect(() => {
+    // Fetch packages from the server
+    const fetchPackages = async () => {
+      try {
+        const packageData = await fetchDataPlans();
+        setPackages(packageData);
+      } catch (error) {
+        console.error('Failed to fetch packages:', error);
+      }
+    };
+
+    fetchPackages();
+  }, []);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
-    const { firstName, lastName, phone, email, address, package: customerPackage, creditCard } =
+    const { first_name, last_name, phone_number, email_address, address, package_id, gender } =
       formData;
 
-    if (
-      !firstName ||
-      !lastName ||
-      !phone ||
-      !email ||
-      !address ||
-      !customerPackage ||
-      !creditCard
-    ) {
+    if (!first_name || !last_name || !phone_number || !email_address || !address || !package_id || !gender) {
       setError('Please fill out all fields.');
       return;
     }
 
-    if (!/^\d{10}$/.test(phone)) {
-      setError('Phone number must be 10 digits.');
-      return;
-    }
+    try {
+      const response = await addCustomer({
+        ...formData,
+        user_id: userData.id, // Use user ID from UserContext
+      });
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Invalid email format.');
-      return;
+      setSuccessMessage(
+        `Customer "${response.first_name} ${response.last_name}" added successfully with package ID ${response.package_id}.`
+      );
+      setFormData({
+        first_name: '',
+        last_name: '',
+        phone_number: '',
+        email_address: '',
+        address: '',
+        package_id: '',
+        gender: '',
+      });
+      setError('');
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      setError('Failed to add customer. Please try again.');
     }
-
-    if (!/^\d{16}$/.test(creditCard)) {
-      setError('Credit card number must be 16 digits.');
-      return;
-    }
-
-    setError('');
-    alert('Customer added successfully!');
-    setFormData({
-      firstName: '',
-      lastName: '',
-      phone: '',
-      email: '',
-      address: '',
-      package: '',
-      creditCard: '',
-    });
   };
 
   return (
     <div id="add-customer-container">
       {/* Navbar */}
-      <Navbar username={username} onLogout={onLogout} />
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
 
       {/* Content */}
       <div id="add-customer-content" className="d-flex">
@@ -86,45 +87,42 @@ function AddCustomer({ username, onLogout }) {
         <main id="add-customer-main" className="col-md-9 col-lg-10 p-4">
           <h1 id="add_cust_title">Add New Customer</h1>
           <form id="add-customer-form" onSubmit={handleSubmit}>
-            {/* Error Message */}
-            {error && <div className="alert alert-danger">{error}</div>}
-
             {/* First Name */}
             <input
-              id="firstName"
+              id="first_name"
               type="text"
               placeholder="First Name"
-              value={formData.firstName}
+              value={formData.first_name}
               onChange={handleChange}
               required
             />
 
             {/* Last Name */}
             <input
-              id="lastName"
+              id="last_name"
               type="text"
               placeholder="Last Name"
-              value={formData.lastName}
+              value={formData.last_name}
               onChange={handleChange}
               required
             />
 
-            {/* Phone */}
+            {/* Phone Number */}
             <input
-              id="phone"
+              id="phone_number"
               type="text"
               placeholder="Phone Number"
-              value={formData.phone}
+              value={formData.phone_number}
               onChange={handleChange}
               required
             />
 
             {/* Email */}
             <input
-              id="email"
+              id="email_address"
               type="email"
               placeholder="Email Address"
-              value={formData.email}
+              value={formData.email_address}
               onChange={handleChange}
               required
             />
@@ -140,35 +138,35 @@ function AddCustomer({ username, onLogout }) {
             />
 
             {/* Package */}
-            <select
-              id="package"
-              value={formData.package}
-              onChange={handleChange}
-              required
-            >
+            <select id="package_id" value={formData.package_id} onChange={handleChange} required>
               <option value="" disabled>
                 Select Package
               </option>
               {packages.map((pkg, index) => (
-                <option key={index} value={pkg}>
-                  {pkg}
+                <option key={index} value={pkg.id}>
+                  {pkg.package_name}
                 </option>
               ))}
             </select>
 
-            {/* Credit Card */}
-            <input
-              id="creditCard"
-              type="text"
-              placeholder="Credit Card Number"
-              value={formData.creditCard}
-              onChange={handleChange}
-              required
-            />
+            {/* Gender */}
+            <select id="gender" value={formData.gender} onChange={handleChange} required>
+              <option value="" disabled>
+                Select Gender
+              </option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
 
             {/* Submit Button */}
             <button type="submit">Add Customer</button>
           </form>
+          {/* Success and Error Messages */}
+          <div id="feedback-container" className="text-center mb-4">
+            {error && <div className="alert alert-danger feedback">{error}</div>}
+            {successMessage && <div className="alert alert-success feedback">{successMessage}</div>}
+          </div>
         </main>
       </div>
     </div>

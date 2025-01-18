@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
+from typing import List, Optional
 from ..models.tables import Customer, Package
 from ..models.database import get_db
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
-from ..utils.attack_detectors import sanitize_input, prevent_sql_injection
+from ..utils.attack_detectors import contains_xss, sanitize_input, prevent_sql_injection
 
 router = APIRouter()
 
@@ -45,12 +46,54 @@ class CustomerResponse(BaseModel):
 
     class Config:
         orm_mode = True
+        
+        
+class CustomerResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    email_address: str
+    address: Optional[str]
+    package_id: str
+    gender: str
+
+
+class CustomerSearchResponse(BaseModel):
+    status: str
+    message: str
+    customers: List[CustomerResponse]
+    
+    
+class SearchQuery(BaseModel):
+    query: str
 
 # Helper Function
 
 def generate_customer_id(session):
     count = session.query(Customer).count()
     return f"cust-{count + 1}"
+
+
+
+def validate_input(customer: CustomerCreate) -> bool:
+    input_fields = [
+        customer.user_id,
+        customer.first_name,
+        customer.last_name,
+        customer.phone_number,
+        customer.email_address,
+        customer.address,
+        customer.package_id,
+        customer.gender,
+    ]
+
+    for field_name, field_value in customer.__dict__.items():
+        if contains_xss(field_value):
+            logger.warning(f"XSS detected in field '{field_name}': {field_value}")
+            return False
+    return True
+
 
 # Endpoints
 
@@ -107,30 +150,47 @@ def get_customer(customer_id: str, request: UserRequest, db: Session = Depends(g
 @router.post("/")
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     logger.info(f"Creating customer for user: {customer.user_id}")
+    
     try:
-        sanitized_user_id = sanitize_input(prevent_sql_injection(customer.user_id))
-        sanitized_first_name = sanitize_input(customer.first_name)
-        sanitized_last_name = sanitize_input(customer.last_name)
-        sanitized_phone_number = sanitize_input(customer.phone_number)
-        sanitized_email_address = sanitize_input(customer.email_address)
-        sanitized_address = sanitize_input(customer.address)
-        sanitized_package_id = sanitize_input(prevent_sql_injection(customer.package_id))
-        sanitized_gender = sanitize_input(customer.gender)
-
-        if (
-            sanitized_user_id != customer.user_id
-            or sanitized_package_id != customer.package_id
-        ):
+        # Validate input for XSS and SQL Injection immediately
+        if not validate_input(customer):
             logger.warning("Potential XSS or SQL Injection detected in customer creation.")
             raise HTTPException(status_code=400, detail="Invalid input detected.")
 
+        # Sanitize inputs and detect SQL Injection during sanitization
+        sanitized_user_id = prevent_sql_injection(customer.user_id)
+        sanitized_first_name = prevent_sql_injection(customer.first_name)
+        sanitized_last_name = prevent_sql_injection(customer.last_name)
+        sanitized_phone_number = prevent_sql_injection(customer.phone_number)
+        sanitized_email_address = prevent_sql_injection(customer.email_address)
+        sanitized_address = prevent_sql_injection(customer.address)
+        sanitized_package_id = prevent_sql_injection(customer.package_id)
+        sanitized_gender = prevent_sql_injection(customer.gender)
+
+        # If any sanitization modified the input, raise an error
+        if (
+            sanitized_user_id != customer.user_id or
+            sanitized_first_name != customer.first_name or
+            sanitized_last_name != customer.last_name or
+            sanitized_phone_number != customer.phone_number or
+            sanitized_email_address != customer.email_address or
+            sanitized_address != customer.address or
+            sanitized_package_id != customer.package_id or
+            sanitized_gender != customer.gender
+        ):
+            logger.warning("Potential SQL Injection detected after sanitization.")
+            raise HTTPException(status_code=400, detail="Invalid input detected.")
+
+        # Check if package exists
         package = db.query(Package).filter(Package.id == sanitized_package_id).first()
         if not package:
             logger.warning(f"Package not found: {sanitized_package_id}")
             raise HTTPException(status_code=404, detail="Package not found.")
 
+        # Generate new customer ID
         new_customer_id = generate_customer_id(db)
 
+        # Create new customer entry
         new_customer = Customer(
             id=new_customer_id,
             first_name=sanitized_first_name,
@@ -143,21 +203,35 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
         )
         db.add(new_customer)
 
+        # Update package subscriber count
         package.subscriber_count += 1
 
+        # Commit changes
         db.commit()
         db.refresh(new_customer)
 
+        # Create audit log entry
         create_audit_log_entry(user_id=sanitized_user_id, action=f"Created customer {new_customer_id}", db=db)
         logger.info(f"Customer created successfully: {new_customer_id}")
-        return {"status": "success", "id": new_customer.id, "message": "Customer created successfully"}
 
-    except HTTPException:
-        raise
-    except Exception as e:
+        # Return detailed response
+        return {
+            "status": "success",
+            "id": new_customer.id,
+            "first_name": new_customer.first_name,
+            "last_name": new_customer.last_name,
+            "package_id": new_customer.package_id,
+            "message": "Customer created successfully"
+        }
+
+    except HTTPException as http_exc:
+        raise http_exc  # Raise any HTTP exceptions immediately
+
+    except Exception as exc:
         db.rollback()
-        logger.exception(f"Error creating customer: {e}")
+        logger.error(f"An error occurred during customer creation: {exc}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.put("/update_customer/{customer_id}")
 def update_customer(customer_id: str, customer: CustomerUpdate, db: Session = Depends(get_db)):
@@ -248,4 +322,55 @@ def delete_customer(customer_id: str, request: UserRequest, db: Session = Depend
     except Exception as e:
         db.rollback()
         logger.exception(f"Error deleting customer {customer_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/search", response_model=CustomerSearchResponse)
+def search_customers(search: SearchQuery, db: Session = Depends(get_db)):
+    """
+    Endpoint to search customers by a query string sent in the request body.
+    """
+    query = search.query
+    logger.info(f"Searching customers with query: {query}")
+
+    try:
+        # Validate and sanitize the query input
+        sanitized_query = prevent_sql_injection(query)
+
+        # Query the database for matching customers
+        customers = db.query(Customer).filter(
+            (Customer.first_name.ilike(f"{sanitized_query}%")) |
+            (Customer.last_name.ilike(f"{sanitized_query}%")) |
+            (Customer.phone_number.ilike(f"{sanitized_query}%")) |
+            (Customer.email_address.ilike(f"{sanitized_query}%")) |
+            (Customer.address.ilike(f"{sanitized_query}%")) |
+            (Customer.package_id.ilike(f"{sanitized_query}%"))
+        ).all()
+
+        if not customers:
+            logger.info("No customers found matching the query.")
+            return {"status": "success", "customers": [], "message": "No results found."}
+
+        # Return the matching customers
+        logger.info(f"Found {len(customers)} customers matching the query.")
+        return {
+            "status": "success",
+            "customers": [
+                CustomerResponse(
+                    id=customer.id,
+                    first_name=customer.first_name,
+                    last_name=customer.last_name,
+                    phone_number=customer.phone_number,
+                    email_address=customer.email_address,
+                    address=customer.address,
+                    package_id=customer.package_id,
+                    gender=customer.gender,
+                )
+                for customer in customers
+            ],
+            "message": "Customers retrieved successfully",
+        }
+
+    except Exception as exc:
+        logger.error(f"An error occurred during customer search: {exc}")
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, Route, Routes, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -13,126 +13,116 @@ import UserProfile from './pages/UserProfile';
 import ChangePassword from './pages/ResetPassword';
 import ModalLoader from './components/ModalLoader';
 import PageNotFound from './pages/404Page.js';
+import SetNewPassScreen from './pages/SetNewPass.js';
+import { useUser } from './context/UserContext';
+import { fetchUserData, logoutUser } from './services/api.js';
 
-/**
- * App Component:
- * Handles routing, authentication, and loading animations.
- */
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => JSON.parse(localStorage.getItem('isAuthenticated')) || false
-  );
-  const [username, setUsername] = useState(() => localStorage.getItem('username') || ''); // State to store username
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const location = useLocation(); // Use location to track route changes
+  const { userData, setUserData } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    // Show loader on route change
+    const token = localStorage.getItem('userToken');
+    if (token && !userData) {
+      setIsLoading(true);
+      fetchUserData(token)
+        .then((data) => setUserData({ ...data, token }))
+        .catch((err) => {
+          console.error('Failed to fetch user data:', err);
+          localStorage.removeItem('userToken');
+          setUserData(null);
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [setUserData, userData]);
+
+  const handleLogin = (token) => {
+    localStorage.setItem('userToken', token);
     setIsLoading(true);
-
-    // Hide loader after 500ms
-    const timer = setTimeout(() => setIsLoading(false), 500);
-
-    return () => clearTimeout(timer);
-  }, [location]);
-
-  const handleLogin = (name) => {
-    setIsAuthenticated(true);
-    setUsername(name); // Save username
-    localStorage.setItem('isAuthenticated', true);
-    localStorage.setItem('username', name); // Save username to localStorage
+    fetchUserData(token)
+      .then((data) => setUserData({ ...data, token }))
+      .catch((err) => console.error('Failed to fetch user data after login:', err))
+      .finally(() => setIsLoading(false));
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUsername(''); // Clear username
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('username'); // Remove username from localStorage
+  const handleLogout = async () => {
+    const token = localStorage.getItem('userToken');
+    if (!token) {
+      console.error('No token found for logout.');
+      return;
+    }
+
+    try {
+      await logoutUser(token);
+      console.log('User logged out successfully.');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setUserData(null);
+      localStorage.removeItem('userToken');
+      window.location.href = '/login';
+    }
   };
 
   const ProtectedRoute = ({ element }) => {
-    return isAuthenticated ? element : <Navigate to="/login" />;
+    if (isLoading) {
+      return <ModalLoader />;
+    }
+
+    if (!userData) {
+      const token = localStorage.getItem('userToken');
+      if (token) {
+        return <ModalLoader />;
+      }
+      return <Navigate to="/login" />;
+    }
+
+    return element;
   };
 
   return (
     <>
-      {isLoading && <ModalLoader />}
       <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
-          element={<Login onLogin={handleLogin} />}
-        />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/insert-token-and-pass" element={<SetNewPassScreen />} />
 
-        {/* Protected Routes */}
+
         <Route
           path="/"
-          element={
-            <ProtectedRoute
-              element={<Home username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<Home onLogout={handleLogout} />} />}
         />
         <Route
           path="/about"
-          element={
-            <ProtectedRoute
-              element={<About username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<About onLogout={handleLogout} />} />}
         />
         <Route
           path="/data-plans"
-          element={
-            <ProtectedRoute
-              element={<DataPlans username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<DataPlans onLogout={handleLogout} />} />}
         />
         <Route
           path="/contact"
-          element={
-            <ProtectedRoute
-              element={<Contact username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<Contact onLogout={handleLogout} />} />}
         />
         <Route
           path="/customers/new"
-          element={
-            <ProtectedRoute
-              element={<AddCustomer username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<AddCustomer onLogout={handleLogout} />} />}
         />
         <Route
           path="/customers/search"
-          element={
-            <ProtectedRoute
-              element={<SearchCustomer username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<SearchCustomer onLogout={handleLogout} />} />}
         />
         <Route
           path="/account/profile"
-          element={
-            <ProtectedRoute
-              element={<UserProfile username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<UserProfile onLogout={handleLogout} />} />}
         />
         <Route
           path="/account/change-password"
-          element={
-            <ProtectedRoute
-              element={<ChangePassword username={username} onLogout={handleLogout} />}
-            />
-          }
+          element={<ProtectedRoute element={<ChangePassword onLogout={handleLogout} />} />}
         />
 
-        {/* Fallback Route (404) */}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

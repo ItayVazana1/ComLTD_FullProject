@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import OurStory from '../components/OurStory';
 import OurPartners from '../components/OurPartners';
+import { useUser } from '../context/UserContext'; // Import UserContext
 import p1 from '../assets/images/partner1.png';
 import p2 from '../assets/images/partner2.png';
 import p3 from '../assets/images/partner3.png';
@@ -26,11 +27,13 @@ const partnersData = [
   { name: 'Partner 5', image: p5 },
 ];
 
-function About({ username, onLogout }) {
+function About({ onLogout }) {
+  const { userData } = useUser(); // Access user data from UserContext
+
   return (
     <div id="about-container" className="about-container">
       {/* Navbar section with logout support */}
-      <Navbar username={username} onLogout={onLogout} />
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
 
       {/* Main content container with sidebar and primary sections */}
       <div id="content-container-about" className="content d-flex">

@@ -13,21 +13,6 @@
     z-index: 1000; /* Ensure the navbar stays on top */
 }
 
-/* Search box styling */
-#search-box {
-    width: 25%;
-    padding: 8px;
-    border: 1px solid var(--custom-border-light); /* Slight border for contrast */
-    border-radius: 4px;
-    background-color: var(--custom-input-light);
-    color: var(--custom-text-dark);
-    transition: border-color 0.3s ease-in-out;
-}
-
-#search-box:focus {
-    border-color: var(--custom-highlight-primary); /* Highlight on focus */
-    outline: none; /* Remove default outline */
-}
 
 /* User info container */
 #user-info {

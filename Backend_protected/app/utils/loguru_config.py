@@ -14,7 +14,7 @@ def setup_loguru():
     logger.add(
         sys.stdout,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | "
-               "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>",
+               "<cyan>{name}</cyan>:<light-blue>{function}</light-blue>:<yellow>{line}</yellow> | <level>{message}</level>",
         level="DEBUG",  # Console log level
         colorize=True,
     )

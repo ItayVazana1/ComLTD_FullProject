@@ -1,59 +1,59 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { sendResetLink } from '../services/api'; // Import API function
 import '../assets/styles/ForgotPassword.css';
 
-/**
- * ForgotPassword Component:
- * This component handles the "Forgot Password" functionality.
- * - Users can enter their email to receive a password reset link.
- * - Includes navigation back to the login page.
- */
 function ForgotPassword() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Initialize navigate function
+  const [email, setEmail] = useState(''); // State to store email input
 
-  const handleSubmit = (e) => {
+  const handleSendLink = async (e) => {
     e.preventDefault(); // Prevent default form submission behavior
-    alert('Password reset link has been sent to your email.');
-    navigate('/login'); // Redirect to login page
+    try {
+      console.log('Sending reset link for email:', email); // Debug log
+      const response = await sendResetLink(email); // Call API
+      console.log('Reset link response:', response); // Debug log
+  
+      if (response.status === 'success') {
+        navigate('/insert-token-and-pass'); // Navigate to ResetPassword page
+      } else {
+        alert('Failed to send reset link. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending reset link:', error);
+      alert('Failed to send reset link. Please try again.');
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setEmail(e.target.value); // Update email state
   };
 
   return (
     <div id="forgot-password-page" className="forgot-password-page">
       <div id="forgot-password-container" className="container">
-        {/* Page Title */}
         <div id="forgot-password-title" className="title">Forgot Password</div>
 
-        {/* Form Container */}
-        <div id="forgot-password-content" className="content">
-          <form id="forgot-password-form" onSubmit={handleSubmit}>
-            {/* Email Input Field */}
-            <div id="forgot-password-user-details" className="user-details">
-              <div id="forgot-password-email-box" className="input-box">
-                <span id="forgot-password-email-label" className="details">Email</span>
-                <input
-                  id="forgot-password-email-input"
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div id="forgot-password-submit-button" className="subButton">
-              <input type="submit" value="Send Reset Link" />
-            </div>
-
-            {/* Back to Login Button */}
-            <div id="forgot-password-back-login-button" className="logButton">
+        {/* Form for sending reset link */}
+        <form id="forgot-password-form" onSubmit={handleSendLink}>
+          <div id="forgot-password-user-details" className="user-details">
+            <div id="forgot-password-email-box" className="input-box">
+              <span id="forgot-password-email-label" className="details">Email</span>
               <input
-                type="button"
-                value="Back to login"
-                onClick={() => navigate('/login')}
+                id="forgot-password-email-input"
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={handleInputChange} // Update email state on change
+                required
               />
             </div>
-          </form>
-        </div>
+          </div>
+          <div id="forgot-password-submit-button" className="subButton">
+            <input type="submit" value="Send Reset Link" />
+          </div>
+        </form>
       </div>
     </div>
   );

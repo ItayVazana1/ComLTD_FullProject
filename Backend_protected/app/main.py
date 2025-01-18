@@ -1,5 +1,5 @@
-import atexit
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .models.database import engine, load_models
 from .models.tables import Base
 from .utils.populate import populate_packages
@@ -10,6 +10,7 @@ from .routes.audit_logs import router as audit_logs_router
 from .routes.landing_page import router as landing_page_router
 from .routes.contact_us import router as contact_us_router
 from .utils.loguru_config import logger
+
 
 
 # Title: Application Initialization and Route Registration
@@ -35,6 +36,19 @@ def create_application() -> FastAPI:
     application.include_router(audit_logs_router, prefix="/audit-logs", tags=["Audit Logs"])
     application.include_router(landing_page_router, tags=["Landing Pages"])
     application.include_router(contact_us_router, tags=["Contact Us"])
+    
+    
+     # Add CORS middleware
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],  # Adjust origins as needed
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    logger.info("CORS middleware successfully added.")
+
+    
 
     logger.info("Routes successfully registered.")
     return application

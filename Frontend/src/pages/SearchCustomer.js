@@ -1,57 +1,42 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
+import { useUser } from '../context/UserContext'; // Access UserContext
+import { searchCustomers } from '../services/api'; // Import the API function
 import '../assets/styles/SearchCustomer.css';
 
 /**
  * SearchCustomer Component:
- * Displays a search form and a table for displaying customer search results.
+ * Fetches and displays customer search results based on user input.
  */
 function SearchCustomer({ username, onLogout }) {
+  const { userData } = useUser(); // Access UserContext
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState([]); // Placeholder for customer search results
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Mock data for results (to be replaced with database queries later)
-  const mockData = [
-    {
-      firstName: 'John',
-      lastName: 'Doe',
-      phone: '1234567890',
-      email: 'john.doe@example.com',
-      address: '123 Main St',
-      package: 'Unlimited Pro',
-      creditCard: '1234567812345678',
-    },
-    {
-      firstName: 'Jane',
-      lastName: 'Smith',
-      phone: '9876543210',
-      email: 'jane.smith@example.com',
-      address: '456 Elm St',
-      package: 'Streamer Lite',
-      creditCard: '8765432187654321',
-    },
-    // Add more mock customers here
-  ];
-
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    // Filter mock data based on search query
-    const filteredResults = mockData.filter(
-      (customer) =>
-        customer.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    setResults(filteredResults);
+    try {
+      // Make a call to the API function
+      const response = await searchCustomers(searchQuery);
+      setResults(response.customers || []);
+    } catch (err) {
+      console.error('Error fetching search results:', err);
+      setError('Failed to fetch search results. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div id="search-customer-container">
       {/* Navbar */}
-      <Navbar username={username} onLogout={onLogout} />
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
 
       {/* Content */}
       <div id="search-customer-content" className="d-flex">
@@ -66,10 +51,13 @@ function SearchCustomer({ username, onLogout }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit" className="btn btn-dark">
-              Search
+            <button type="submit" className="btn btn-dark" disabled={loading}>
+              {loading ? 'Searching...' : 'Search'}
             </button>
           </form>
+
+          {/* Error Message */}
+          {error && <div className="alert alert-danger">{error}</div>}
 
           {/* Results Table */}
           <table id="results-table" className="table table-striped table-bordered">
@@ -81,22 +69,22 @@ function SearchCustomer({ username, onLogout }) {
                 <th>Email</th>
                 <th>Address</th>
                 <th>Package</th>
-                <th>Credit Card</th>
+                <th>Gender</th>
               </tr>
             </thead>
             <tbody>
-              {results.slice(0, 15).map((customer, index) => (
+              {results.map((customer, index) => (
                 <tr key={index}>
-                  <td>{customer.firstName}</td>
-                  <td>{customer.lastName}</td>
-                  <td>{customer.phone}</td>
-                  <td>{customer.email}</td>
+                  <td>{customer.first_name}</td>
+                  <td>{customer.last_name}</td>
+                  <td>{customer.phone_number}</td>
+                  <td>{customer.email_address}</td>
                   <td>{customer.address}</td>
-                  <td>{customer.package}</td>
-                  <td>{customer.creditCard}</td>
+                  <td>{customer.package_id}</td>
+                  <td>{customer.gender}</td>
                 </tr>
               ))}
-              {results.length === 0 && (
+              {results.length === 0 && !loading && (
                 <tr>
                   <td colSpan="7" className="text-center text-muted">
                     No results found.

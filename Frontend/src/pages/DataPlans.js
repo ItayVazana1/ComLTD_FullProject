@@ -4,87 +4,47 @@ import Sidebar from '../components/Sidebar';
 import PlanCard from '../components/PlanCard';
 import TypingEffect from '../components/TypingEffect';
 import '../assets/styles/DataPlans.css';
-import p1 from '../assets/images/plan_1.png';
-import p2 from '../assets/images/plan_2.png';
-import p3 from '../assets/images/plan_3.png';
-import p4 from '../assets/images/plan_4.png';
+import { fetchDataPlans } from '../services/api'; // Import the API function
+import { useUser } from '../context/UserContext'; // Import UserContext
 
-/**
- * DataPlans Component:
- * Displays a grid of PlanCard components with a typing effect.
- */
-const plansData = [
-  {
-    title: 'Essential Plan',
-    description: 'Perfect for casual users who need just the basics.',
-    image: p1,
-    details: [
-      { label: 'Data Limit', value: '5GB' },
-      { label: 'Price', value: '$10/month' },
-      { label: 'Speed', value: 'Up to 20Mbps' },
-      { label: 'Free Add-ons', value: 'None' },
-      { label: 'Roaming', value: 'Not Included' },
-      { label: 'Support', value: 'Email Support Only' },
-    ],
-    borderColor: '#ff206e',
-  },
-  {
-    title: 'Streamer Lite',
-    description: 'Ideal for streaming enthusiasts with moderate usage needs.',
-    image: p2,
-    details: [
-      { label: 'Data Limit', value: '20GB' },
-      { label: 'Price', value: '$25/month' },
-      { label: 'Speed', value: 'Up to 50Mbps' },
-      { label: 'Free Add-ons', value: '1 month free on Netflix Basic Plan' },
-      { label: 'Roaming', value: 'Domestic Roaming Only' },
-      { label: 'Support', value: '24/7 Live Chat Support' },
-    ],
-    borderColor: '#3e92cc',
-  },
-  {
-    title: 'Unlimited Pro',
-    description:
-      'Unlimited data for professionals who need constant connectivity.',
-    image: p3,
-    details: [
-      { label: 'Data Limit', value: 'Unlimited (Fair Use Policy: 100GB)' },
-      { label: 'Price', value: '$40/month' },
-      { label: 'Speed', value: 'Up to 100Mbps' },
-      { label: 'Free Add-ons', value: 'Free VPN for 6 months' },
-      { label: 'Roaming', value: 'International Roaming (5GB)' },
-      { label: 'Support', value: 'Priority Phone Support' },
-    ],
-    borderColor: '#339989',
-  },
-  {
-    title: 'Global Connect',
-    description:
-      'For frequent travelers and those who need connectivity worldwide.',
-    image: p4,
-    details: [
-      { label: 'Data Limit', value: '300GB' },
-      { label: 'Price', value: '$70/month' },
-      { label: 'Speed', value: 'High-speed 5G' },
-      { label: 'Free Add-ons', value: '10GB extra in roaming zones' },
-      { label: 'Roaming', value: 'Global Roaming (50GB)' },
-      { label: 'Support', value: 'Dedicated Account Manager' },
-    ],
-    borderColor: '#f9c22e',
-  },
+// Define colors and images for plans
+const colors = ['#ff206e', '#3e92cc', '#339989', '#f9c22e'];
+const images = [
+  require('../assets/images/plan_1.png'),
+  require('../assets/images/plan_2.png'),
+  require('../assets/images/plan_3.png'),
+  require('../assets/images/plan_4.png'),
 ];
 
-function DataPlans({ username, onLogout }) {
+function DataPlans({ onLogout }) {
+  const { userData } = useUser(); // Access user data from UserContext
   const [showTypingEffect, setShowTypingEffect] = useState(false); // State for conditional rendering
+  const [plansData, setPlansData] = useState([]); // State to store plans data
+  const [loading, setLoading] = useState(true); // State for loading status
 
   useEffect(() => {
     const timer = setTimeout(() => setShowTypingEffect(true), 500); // Delay of 500ms
+
+    // Fetch plans data
+    const fetchPlans = async () => {
+      try {
+        const plans = await fetchDataPlans(); // Fetch data plans
+        setPlansData(plans); // Update state with plans data
+      } catch (error) {
+        console.error('Failed to fetch data plans:', error);
+      } finally {
+        setLoading(false); // Set loading to false
+      }
+    };
+
+    fetchPlans();
+
     return () => clearTimeout(timer); // Cleanup
   }, []);
 
   return (
     <div id="data-plans-container" className="data-plans-container">
-      <Navbar username={username} onLogout={onLogout} />
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
       <div id="content-container" className="content d-flex">
         <Sidebar id="sidebar" />
         <main id="main-content" className="col-md-9 col-lg-10 p-4">
@@ -100,13 +60,23 @@ function DataPlans({ username, onLogout }) {
           </div>
 
           {/* Data Plans Grid */}
-          <div
-            id="plans-grid"
-            className="d-flex flex-wrap justify-content-center"
-          >
-            {plansData.map((plan, index) => (
-              <PlanCard key={index} {...plan} />
-            ))}
+          <div id="plans-grid" className="d-flex flex-wrap justify-content-center">
+            {loading ? (
+              <p>Loading plans...</p> // Show loading message
+            ) : (
+              plansData.map((plan, index) => (
+                <PlanCard
+                  key={index}
+                  title={plan.package_name}
+                  description={plan.description}
+                  image={images[index % images.length]} // Assign image dynamically
+                  details={[
+                    { label: 'Price', value: `$${plan.monthly_price}/month` },
+                  ]}
+                  borderColor={colors[index % colors.length]} // Assign color dynamically
+                />
+              ))
+            )}
           </div>
         </main>
       </div>

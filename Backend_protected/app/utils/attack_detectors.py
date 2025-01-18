@@ -2,6 +2,47 @@ import re
 from html import escape
 from ..utils.loguru_config import logger  # Import logger for logging
 
+
+# Compile patterns once and reuse
+XSS_PATTERNS = [
+    re.compile(r"<.*?>", re.IGNORECASE),
+    re.compile(r"javascript:.*", re.IGNORECASE),
+    re.compile(r"on\w+=\".*?\"", re.IGNORECASE),
+    re.compile(r"&[a-zA-Z]+;", re.IGNORECASE),
+]
+
+SQL_PATTERNS = [
+    re.compile(r"(--|;|/*|\*/|\\x27|\\x22|\\x2f\\x2a)", re.IGNORECASE),
+    re.compile(r"(['\"]\s*(OR|AND)\s*['\"]|(['\"]\s*=\s*['\"]))", re.IGNORECASE),
+    re.compile(r"(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC).*", re.IGNORECASE),
+    re.compile(r"\b(\d+\s*=\s*\d+)\b", re.IGNORECASE),
+]
+
+
+
+def contains_xss(value: str) -> bool:
+    if not value:
+        return False
+    for pattern in XSS_PATTERNS:
+        if pattern.search(value):
+            logger.warning(f"XSS pattern detected: {pattern.pattern} in value: {value}")
+            return True
+    return False
+
+
+
+def contains_sql_injection(value: str) -> bool:
+    if not value:
+        return False
+    for pattern in SQL_PATTERNS:
+        if pattern.search(value):
+            logger.warning(f"SQL Injection pattern detected: {pattern.pattern} in value: {value}")
+            return True
+    return False
+
+
+
+
 def sanitize_input(input_value: str) -> str:
     """
     Escapes special characters in the input to prevent XSS attacks.
@@ -17,6 +58,9 @@ def sanitize_input(input_value: str) -> str:
     else:
         logger.debug(f"Input --> {input_value} is valid!")
     return sanitized_value
+
+
+
 
 def prevent_sql_injection(input_value: str) -> str:
     """
@@ -42,3 +86,5 @@ def prevent_sql_injection(input_value: str) -> str:
 
     logger.debug(f"SQL-safe input: Original: {input_value}, Sanitized: {sanitized_value}")
     return sanitized_value
+
+

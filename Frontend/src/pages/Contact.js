@@ -3,15 +3,17 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import TypingEffect from '../components/TypingEffect';
 import '../assets/styles/Contact.css';
+import { sendContactMessage } from '../services/api';
+import { useUser } from '../context/UserContext'; // Import UserContext
 
 /**
  * Contact Component:
  * Includes a modern form with a typing effect displayed on the right.
  */
-function Contact({ username, onLogout }) {
+function Contact({ onLogout }) {
+  const { userData } = useUser(); // Access user data from context
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
     message: '',
   });
   const [showTypingEffect, setShowTypingEffect] = useState(false); // State for conditional rendering
@@ -27,17 +29,28 @@ function Contact({ username, onLogout }) {
     setFormData({ ...formData, [id]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Your message has been sent successfully!');
-    setFormData({ name: '', email: '', message: '' });
+    try {
+      const response = await sendContactMessage({
+        user_id: userData?.id || 'Unknown', // Include user ID from UserContext
+        name: userData?.full_name || 'Anonymous', // Use name from UserContext
+        email: userData?.email || 'No Email Provided', // Use email from UserContext
+        message: formData.message,
+        send_copy: document.getElementById('copyCheckbox').checked, // Check if the user wants a copy
+      });
+      alert(response.message || 'Your message has been sent successfully!');
+      setFormData({ message: '' });
+    } catch (error) {
+      alert('Failed to send your message. Please try again.');
+    }
   };
 
   return (
     <div id="contact-container">
       {/* Navbar */}
-      <Navbar username={username} onLogout={onLogout} />
-      
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
+
       {/* Main Content */}
       <div id="contact-content" className="d-flex">
         <Sidebar />
@@ -59,22 +72,12 @@ function Contact({ username, onLogout }) {
 
           {/* Contact Form */}
           <form id="contact-form" onSubmit={handleSubmit}>
-            <input
-              id="name"
-              type="text"
-              placeholder="Your Full Name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-            <input
-              id="email"
-              type="email"
-              placeholder="Your Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+            <div className="mb-3 text-light">
+              <label className="form-label"><b>{userData?.full_name || 'Anonymous'}</b></label>
+            </div>
+            <div className="mb-3 text-light">
+              <label className="form-label"><b>{userData?.email || 'No Email Provided'}</b></label>
+            </div>
             <textarea
               id="message"
               placeholder="Write your message here..."

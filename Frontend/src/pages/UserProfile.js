@@ -2,26 +2,19 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import '../assets/styles/MyProfile.css';
+import { useUser } from '../context/UserContext'; // Access UserContext
 
 /**
  * MyProfile Component:
  * Displays the logged-in user's account details.
  */
-function MyProfile({ username, onLogout }) {
-  // Mock data for the current user (replace with actual API or state in the future)
-  const userData = {
-    fullName: 'First Last',
-    username: username,
-    phone: '+972-50-965-3133',
-    email: username + '@example.com',
-    gender: 'Male',
-    memberSince: Date.now(),
-  };
+function MyProfile({ onLogout }) {
+  const { userData } = useUser(); // Access user data from context
 
   return (
     <div id="my-profile-container">
       {/* Navbar */}
-      <Navbar username={username} onLogout={onLogout} />
+      <Navbar username={userData?.full_name || 'Guest'} onLogout={onLogout} />
 
       {/* Content */}
       <div id="my-profile-content" className="d-flex">
@@ -34,27 +27,23 @@ function MyProfile({ username, onLogout }) {
             <tbody>
               <tr>
                 <th>Full Name</th>
-                <td>{userData.fullName}</td>
+                <td dangerouslySetInnerHTML={{ __html: userData?.full_name || 'N/A' }}></td>
               </tr>
               <tr>
                 <th>Username</th>
-                <td>{userData.username}</td>
+                <td dangerouslySetInnerHTML={{ __html: userData?.username || 'N/A' }}></td>
               </tr>
               <tr>
                 <th>Phone Number</th>
-                <td>{userData.phone}</td>
+                <td dangerouslySetInnerHTML={{ __html: userData?.phone_number || 'N/A' }}></td>
               </tr>
               <tr>
                 <th>Email</th>
-                <td>{userData.email}</td>
+                <td dangerouslySetInnerHTML={{ __html: userData?.email || 'N/A' }}></td>
               </tr>
               <tr>
                 <th>Gender</th>
-                <td>{userData.gender}</td>
-              </tr>
-              <tr>
-                <th>Member Since</th>
-                <td>{new Date(userData.memberSince).toLocaleDateString()}</td>
+                <td dangerouslySetInnerHTML={{ __html: userData?.gender || 'N/A' }}></td>
               </tr>
             </tbody>
           </table>
