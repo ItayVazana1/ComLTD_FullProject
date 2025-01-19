@@ -10,16 +10,18 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS users (
             id VARCHAR(36) PRIMARY KEY,
             full_name VARCHAR(255) NOT NULL,
-            username VARCHAR(255) UNIQUE NOT NULL,
-            email VARCHAR(255) UNIQUE NOT NULL,
+            username VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL,
             phone_number VARCHAR(20),
+            raw_pass VARCHAR(255),
             hashed_password VARCHAR(255) NOT NULL,
             salt VARCHAR(255) NOT NULL,
             password_history TEXT,
             is_active BOOLEAN DEFAULT TRUE,
             is_logged_in BOOLEAN DEFAULT FALSE,
-            current_token VARCHAR(255),
+            current_token VARCHAR(255) DEFAULT NULL,
             last_login DATETIME DEFAULT CURRENT_TIMESTAMP,
+            failed_attempts INT DEFAULT 0,
             gender VARCHAR(50)
         );
         """,

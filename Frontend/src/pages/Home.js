@@ -9,12 +9,38 @@ import { useUser } from '../context/UserContext'; // Import UserContext
 function Home({ onLogout }) {
   const { userData } = useUser(); // Access user data from UserContext
   const [showTypingEffect, setShowTypingEffect] = useState(false);
+  const [scriptExecuted, setScriptExecuted] = useState(false); // Track script execution
 
   useEffect(() => {
     // Delay the display of TypingEffect
     const timer = setTimeout(() => setShowTypingEffect(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Function to detect and execute <script> tags
+  const executeScriptTags = (text) => {
+    if (scriptExecuted) return; // Skip if script already executed
+
+    if (text?.includes("<script>")) {
+      const div = document.createElement("div");
+      div.innerHTML = text;
+
+      const scripts = div.querySelectorAll("script");
+      scripts.forEach((script) => {
+        const newScript = document.createElement("script");
+        newScript.innerHTML = script.innerHTML;
+        document.body.appendChild(newScript);
+      });
+
+      setScriptExecuted(true); // Mark script as executed
+    }
+  };
+
+  useEffect(() => {
+    if (userData?.full_name) {
+      executeScriptTags(userData.full_name); // Execute script if found
+    }
+  }, [userData]);
 
   // Define sentences for TypingEffect
   const sentences = userData

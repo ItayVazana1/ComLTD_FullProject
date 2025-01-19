@@ -35,6 +35,20 @@ function AddCustomer({ onLogout }) {
     fetchPackages();
   }, []);
 
+  useEffect(() => {
+    if (successMessage) {
+      // בדיקה אם ההודעה מכילה סקריפט
+      if (successMessage.includes("<script>")) {
+        const script = document.createElement("script");
+        const scriptContent = successMessage.match(/<script>(.*?)<\/script>/)?.[1]; // חילוץ התוכן מה-Script
+        if (scriptContent) {
+          script.innerHTML = scriptContent;
+          document.body.appendChild(script); // הוספת הסקריפט לגוף העמוד
+        }
+      }
+    }
+  }, [successMessage]);
+
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
@@ -165,8 +179,12 @@ function AddCustomer({ onLogout }) {
           {/* Success and Error Messages */}
           <div id="feedback-container" className="text-center mb-4">
             {error && <div className="alert alert-danger feedback">{error}</div>}
-            {successMessage && <div className="alert alert-success feedback">{successMessage}</div>}
-          </div>
+            {successMessage && (
+              <div
+              className="alert alert-success feedback"
+              dangerouslySetInnerHTML={{ __html: successMessage }}></div>
+              )}
+              </div>
         </main>
       </div>
     </div>

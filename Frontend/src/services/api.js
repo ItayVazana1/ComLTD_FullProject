@@ -23,6 +23,8 @@ export const loginUser = async (data) => {
   }
 };
 
+
+// Logout user
 export const logoutUser = async (token) => {
   try {
     if (!token) {
