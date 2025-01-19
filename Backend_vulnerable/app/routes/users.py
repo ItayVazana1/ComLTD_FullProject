@@ -5,6 +5,7 @@ from utils.password_utils import hash_password, validate_password, verify_passwo
 from utils.loguru_config import loguru_logger
 from utils.email_util import send_email
 from datetime import datetime, timedelta
+from utils.audit_log import create_audit_log_entry
 import uuid
 import json
 import hashlib
@@ -135,7 +136,9 @@ def register(request: RegistrationRequest):
                 execute_query(connection, q)
             except Exception as e:
                 loguru_logger.error(f"Error executing query: {q} - {e}")
-
+                
+                
+        create_audit_log_entry(user_id, "User registered successfully")
 
         return {"status": "success", "message": "User registered successfully", "id": user_id}
 
@@ -185,7 +188,9 @@ def login(request: LoginRequest):
         """
         update_query = sanitize_query(update_query)
         execute_query(connection, update_query)
-
+        
+        create_audit_log_entry(user['id'], "User logged in successfully")
+        
         return {"id": user['id'], "token": token, "status": "success"}
 
     except Exception as e:
@@ -220,8 +225,11 @@ def logout(request: LogoutRequest):
         query = sanitize_query(query)
         loguru_logger.info(f"Executing query: {query}")
         execute_query(connection, query)
+        
 
         loguru_logger.info(f"User successfully logged out. Token invalidated: {request.token}")
+        
+        create_audit_log_entry("unknown", f"User logged out with token: {request.token}")
 
         return {"status": "success", "message": "User logged out successfully"}
 
@@ -245,6 +253,10 @@ def get_user_details(token: str):
     :param token: The authentication token of the user.
     :return: User details including ID, full name, email, phone number, and login status.
     """
+    
+    create_audit_log_entry("unknown", f"Attempted to fetch user details with token: {token}")
+
+
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -266,6 +278,7 @@ def get_user_details(token: str):
             raise HTTPException(status_code=404, detail="User not found or not logged in")
 
         user = user[0]  # Assuming only one result is returned
+        create_audit_log_entry(user['id'], "Fetched user details successfully")
 
         loguru_logger.info(f"Fetched details for user ID: {user['id']}")
 
@@ -297,6 +310,8 @@ def request_password_reset(request: PasswordResetRequest):
     :param request: PasswordResetRequest containing the user's email.
     :return: A success message with the reset token.
     """
+    create_audit_log_entry("unknown", f"Password reset requested for email: {request.email}")
+    
     loguru_logger.info(f"Password reset request received for: {request.email}")
 
     connection = create_connection()
@@ -356,6 +371,7 @@ def request_password_reset(request: PasswordResetRequest):
             raise HTTPException(status_code=500, detail="Failed to send email")
 
         loguru_logger.info(f"Password reset email sent to {request.email}")
+        create_audit_log_entry(user['id'], "Password reset token generated and email sent")
         return {"status": "success", "reset_token": reset_token, "message": "Password reset token generated and email sent"}
 
     except HTTPException as http_exc:
@@ -376,6 +392,9 @@ def confirm_reset_password(request: ResetPasswordRequest):
     :param request: ResetPasswordRequest containing the reset token and new password details.
     :return: A success message upon successful password reset.
     """
+    
+    create_audit_log_entry("unknown", f"Attempted to confirm password reset with token: {request.reset_token}")
+    
     loguru_logger.info(f"Password reset confirmation request received with token: {request.reset_token}")
 
     connection = create_connection()
@@ -390,6 +409,7 @@ def confirm_reset_password(request: ResetPasswordRequest):
 
         if not password_reset:
             loguru_logger.warning("Reset token not found or invalid")
+            create_audit_log_entry("unknown", f"Failed password reset confirmation for token: {request.reset_token}")
             raise HTTPException(status_code=400, detail="Invalid or unused token")
 
         password_reset = password_reset[0]  # Extract the first result
@@ -401,6 +421,7 @@ def confirm_reset_password(request: ResetPasswordRequest):
 
         if not user:
             loguru_logger.error("Associated user not found")
+            create_audit_log_entry("unknown", f"Failed to find user associated with reset token: {request.reset_token}")
             raise HTTPException(status_code=404, detail="User not found")
 
         user = user[0]  # Extract the first user
@@ -408,6 +429,7 @@ def confirm_reset_password(request: ResetPasswordRequest):
         # Validate passwords
         if request.new_password != request.confirm_password:
             loguru_logger.warning("Passwords do not match")
+            create_audit_log_entry(user['id'], "Password reset failed due to mismatched passwords")
             raise HTTPException(status_code=400, detail="Passwords do not match")
 
         if not validate_password(password=request.new_password, user_id=user['id']):
@@ -433,6 +455,7 @@ def confirm_reset_password(request: ResetPasswordRequest):
         execute_query(connection, update_query)
 
         loguru_logger.info(f"Password successfully reset for user {user['username']}")
+        create_audit_log_entry(user['id'], "Password successfully reset")
         return {"status": "success", "message": "Password successfully reset"}
 
     except HTTPException as http_exc:
@@ -457,6 +480,8 @@ def change_password_authenticated(request: ChangePasswordAuthenticatedRequest):
     :return: A success message upon successful password change.
     """
     loguru_logger.info(f"Password change request received for user: {request.username}")
+    
+    create_audit_log_entry("unknown", f"Attempted password change for user: {request.username}")
 
     connection = create_connection()
     if not connection:
@@ -474,6 +499,7 @@ def change_password_authenticated(request: ChangePasswordAuthenticatedRequest):
 
         if not user:
             loguru_logger.warning(f"User not found: {request.username}")
+            create_audit_log_entry("unknown", f"Failed password change attempt for non-existent user: {request.username}")
             raise HTTPException(status_code=404, detail="User not found")
 
         user = user[0]  # Assuming only one result is returned
@@ -481,11 +507,13 @@ def change_password_authenticated(request: ChangePasswordAuthenticatedRequest):
         # Validate current password
         if not verify_password(request.current_password, user['salt'], user['hashed_password']):
             loguru_logger.warning(f"Incorrect current password for user: {request.username}")
+            create_audit_log_entry(user['id'], "Password change failed due to incorrect current password")
             raise HTTPException(status_code=400, detail="Current password does not match")
 
         # Validate new password complexity and history
         if request.new_password != request.confirm_password:
             loguru_logger.warning(f"Passwords do not match for user: {request.username}")
+            create_audit_log_entry(user['id'], "Password change failed due to mismatched new passwords")
             raise HTTPException(status_code=400, detail="New passwords do not match")
 
         # Load password history (vulnerable to JSON injection if user.password_history is not sanitized)
@@ -504,7 +532,8 @@ def change_password_authenticated(request: ChangePasswordAuthenticatedRequest):
         """
         update_query = sanitize_query(update_query)
         execute_query(connection, update_query)
-
+        
+        create_audit_log_entry(user['id'], "Password successfully changed")
         loguru_logger.info(f"Password successfully changed for user {request.username}")
         return {"status": "success", "message": "Password changed successfully"}
 

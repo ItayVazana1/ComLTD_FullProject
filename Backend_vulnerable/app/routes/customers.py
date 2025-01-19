@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from db.connection import create_connection, execute_query, fetch_results
 from utils.loguru_config import loguru_logger
+from utils.audit_log import create_audit_log_entry
 from datetime import datetime
 import uuid 
 
@@ -47,6 +48,9 @@ def create_customer(customer: CustomerCreate):
     :param customer: CustomerCreate containing details about the new customer.
     :return: A success message with the customer's details.
     """
+    
+    create_audit_log_entry(customer.user_id, "Attempted to create a new customer")
+    
     loguru_logger.info(f"Creating customer for user: {customer.user_id}")
 
     connection = create_connection()
@@ -74,6 +78,7 @@ def create_customer(customer: CustomerCreate):
         query = sanitize_query(query)
         loguru_logger.info(f"Executing query: {query}")
         execute_query(connection, query)
+        create_audit_log_entry(customer.user_id, f"Default customer created with ID: {customer_id}")
 
         # Update fields with user-provided input
         updates = [
@@ -90,11 +95,14 @@ def create_customer(customer: CustomerCreate):
             try:
                 update = sanitize_query(update)
                 loguru_logger.info(f"Executing query: {update}")
+                create_audit_log_entry(customer.user_id, f"Field updated successfully: {update}") 
                 execute_query(connection, update)
             except Exception as e:
                 loguru_logger.error(f"Error executing query: {update} - {e}")
-
+                
+        create_audit_log_entry(customer.user_id, f"Customer created successfully with ID: {customer_id}")
         loguru_logger.info(f"Customer created successfully: {customer_id}")
+        
         return {
             "status": "success",
             "id": customer_id,
@@ -105,6 +113,7 @@ def create_customer(customer: CustomerCreate):
 
     except Exception as e:
         connection.rollback()
+        create_audit_log_entry(customer.user_id, f"Error creating customer: {e}")
         loguru_logger.error(f"An error occurred during customer creation: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -119,6 +128,8 @@ def search_customers(search: SearchQuery):
     Vulnerable endpoint to search customers by a query string.
     Allows SQL Injection with flexibility for information retrieval.
     """
+    create_audit_log_entry("unknown", f"Search initiated with query: {search.query.strip()}")
+    
     query = search.query.strip()  # Trim whitespace
     if not query:  # If query is empty, return error
         loguru_logger.warning("Empty query received. Aborting search.")
@@ -149,11 +160,14 @@ def search_customers(search: SearchQuery):
         customers = fetch_results(connection, sql_query)
 
         if not customers:
+            create_audit_log_entry("unknown", f"No customers found for query: {query}")
             loguru_logger.info("No customers found matching the query.")
             return {"status": "success", "customers": [], "message": "No results found."}
 
         # Return the matching customers
         loguru_logger.info(f"Found {len(customers)} customers matching the query.")
+        create_audit_log_entry("unknown", f"Found {len(customers)} customers for query: {query}")
+        
         return {
             "status": "success",
             "customers": [
@@ -174,6 +188,7 @@ def search_customers(search: SearchQuery):
 
     except Exception as exc:
         loguru_logger.error(f"An error occurred during customer search: {exc}")
+        create_audit_log_entry("unknown", f"Error during search: {exc}")  # נכון כעת
         raise HTTPException(status_code=500, detail="Internal server error")
 
     finally:

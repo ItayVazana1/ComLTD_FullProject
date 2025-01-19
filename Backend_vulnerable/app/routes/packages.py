@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from db.connection import create_connection, execute_query, fetch_results
 from utils.loguru_config import loguru_logger
+from utils.audit_log import create_audit_log_entry
 
 router = APIRouter()
 
@@ -27,7 +28,8 @@ def get_packages():
     :return: List of all packages.
     """
     loguru_logger.info("Fetching all packages.")
-
+    create_audit_log_entry("unknown", "Attempted to fetch all packages")
+    
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -40,12 +42,15 @@ def get_packages():
 
         if not packages:
             loguru_logger.warning("No packages found.")
+            create_audit_log_entry("unknown", "No packages found during fetch attempt")
             raise HTTPException(status_code=404, detail="No packages found.")
 
         loguru_logger.debug(f"Fetched {len(packages)} packages.")
+        create_audit_log_entry("unknown", f"Fetched {len(packages)} packages successfully")
         return packages
 
     except Exception as e:
+        create_audit_log_entry("unknown", f"Error occurred while fetching packages: {e}")
         loguru_logger.error(f"Error fetching packages: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
