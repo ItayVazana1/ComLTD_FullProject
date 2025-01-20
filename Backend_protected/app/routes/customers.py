@@ -334,6 +334,11 @@ def search_customers(search: SearchQuery, db: Session = Depends(get_db)):
     logger.info(f"Searching customers with query: {query}")
 
     try:
+        # Check if the query is empty
+        if not query.strip():
+            logger.info("Empty query string received. Returning no results.")
+            return {"status": "success", "customers": [], "message": "No results found."}
+
         # Validate and sanitize the query input
         sanitized_query = prevent_sql_injection(query)
 

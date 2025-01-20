@@ -28,10 +28,10 @@ def create_tables():
         """
         CREATE TABLE IF NOT EXISTS customers (
             id VARCHAR(50) PRIMARY KEY,
-            first_name VARCHAR(50) NOT NULL,
-            last_name VARCHAR(50) NOT NULL,
-            phone_number VARCHAR(15) NOT NULL,
-            email_address VARCHAR(100) UNIQUE NOT NULL,
+            first_name VARCHAR(255) NOT NULL,
+            last_name VARCHAR(255) NOT NULL,
+            phone_number VARCHAR(255) NOT NULL,
+            email_address VARCHAR(100) NOT NULL,
             address TEXT,
             package_id VARCHAR(50),
             gender VARCHAR(10)
