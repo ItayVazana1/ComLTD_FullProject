@@ -1,8 +1,13 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
-import '../assets/styles/Global.css';
-import '../assets/styles/sidebar.css';
-import logo from '../assets/images/logo.png';
+import { useLocation } from 'react-router-dom'; // Hook to get the current route
+import '../assets/styles/Global.css'; // Global styles
+import '../assets/styles/sidebar.css'; // Sidebar-specific styles
+import logo from '../assets/images/logo.png'; // Company logo
+
+/**
+ * Sidebar Component:
+ * Provides navigation for the application, including nested menus for customers and account management.
+ */
 
 const menuItems = [
   { title: 'Home', href: '/' },
@@ -26,18 +31,18 @@ const menuItems = [
 ];
 
 function Sidebar() {
-  const location = useLocation(); // Get the current location
+  const location = useLocation(); // Get the current location for active menu highlighting
 
   /**
-   * Check if the current path matches any of the submenu items.
-   * @param {Array} subMenu - The submenu items to check.
-   * @returns {boolean} - True if the current path matches a submenu item.
+   * Check if the current route matches any of the submenu items.
+   * @param {Array} subMenu - Array of submenu items.
+   * @returns {boolean} - True if the current route matches any submenu item.
    */
   const isSubMenuActive = (subMenu) =>
     subMenu.some((subItem) => location.pathname.startsWith(subItem.href));
 
   /**
-   * Renders a submenu under a parent menu item.
+   * Render submenu for a parent menu item.
    * @param {Array} subMenu - Array of submenu items.
    * @param {Number} parentIndex - Index of the parent menu item.
    */
@@ -46,7 +51,7 @@ function Sidebar() {
       <ul
         id={`submenu-${parentIndex}`}
         className={`submenu collapse nav flex-column ms-3 ${
-          isSubMenuActive(subMenu) ? 'show' : '' // Ensure the submenu is visible if active
+          isSubMenuActive(subMenu) ? 'show' : '' // Ensure submenu is visible if active
         }`}
       >
         {subMenu.map((subItem, subIndex) => (
@@ -54,8 +59,8 @@ function Sidebar() {
             <a
               href={subItem.href}
               className={`nav-link text-white ${
-                location.pathname === subItem.href ? 'active-link' : ''
-              }`} // Highlight active link
+                location.pathname === subItem.href ? 'active-link' : '' // Highlight active link
+              }`}
             >
               {subItem.title}
             </a>
@@ -73,10 +78,10 @@ function Sidebar() {
         src={logo}
         alt="Company logo"
         className="logo img-fluid p-3 mt-4"
-        style={{ maxHeight: '200px' }}
+        style={{ maxHeight: '200px' }} // Style to constrain logo size
       />
 
-      {/* Company Name */}
+      {/* Company Name and Divider */}
       <h5 id="sidebar-company-name" className="h5 text-center">Communication LTD</h5>
       <h6 id="sidebar-divider" className="h6 text-center">_______________________________</h6>
 
@@ -86,29 +91,33 @@ function Sidebar() {
           <li id={`menu-item-${index}`} className="nav-item mt-2" key={index}>
             {item.subMenu ? (
               <>
+                {/* Parent menu item with submenu */}
                 <a
                   id={`menu-link-${index}`}
                   href={`#submenu-${index}`}
                   className="nav-link text-white"
-                  data-bs-toggle="collapse"
+                  data-bs-toggle="collapse" // Bootstrap collapse functionality
                   role="button"
                   aria-expanded={isSubMenuActive(item.subMenu)} // Keep submenu expanded if active
                   aria-controls={`submenu-${index}`}
                 >
                   {item.title}
                 </a>
-                {renderSubMenu(item.subMenu, index)}
+                {renderSubMenu(item.subMenu, index)} {/* Render submenu */}
               </>
             ) : (
-              <a
-                id={`menu-link-${index}`}
-                href={item.href}
-                className={`nav-link text-white ${
-                  location.pathname === item.href ? 'active-link' : ''
-                }`} // Highlight active link
-              >
-                {item.title}
-              </a>
+              <>
+                {/* Parent menu item without submenu */}
+                <a
+                  id={`menu-link-${index}`}
+                  href={item.href}
+                  className={`nav-link text-white ${
+                    location.pathname === item.href ? 'active-link' : '' // Highlight active link
+                  }`}
+                >
+                  {item.title}
+                </a>
+              </>
             )}
           </li>
         ))}

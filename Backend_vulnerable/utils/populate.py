@@ -49,25 +49,24 @@ def populate_table(connection, table_name, data, unique_column):
                     f"Record with {unique_column}='{unique_value}' already exists in table '{table_name}'. Skipping.")
                 continue
 
-            # אם מדובר בטבלת users, נוודא שהסיסמה חוקית
+            # For the 'users' table, validate the password if present
             if table_name == "users":
                 if 'password' in record:
                     password = record['password']
-                    # נוודא שהסיסמה חוקית
+                    # Validate the password
                     if not validate_password(password, record['id']):
                         logger.warning(f"Password validation failed for user {record['id']}. Skipping record.")
-                        continue  # דילוג על רשומה אם הסיסמה לא חוקית
+                        continue  # Skip the record if the password is invalid
 
-                    # יצירת ה-Salt וה-Hash של הסיסמה
+                    # Hash the password and generate the salt
                     salt, hashed_password = hash_password(password)
-                    # הוספת השדות אם הם לא קיימים
                     record['hashed_password'] = hashed_password
                     record['salt'] = salt
-                    del record['password']  # הסרה של password מהרקורד
+                    del record['password']  # Remove the password field from the record
 
             # Insert the new record
             columns = ", ".join(record.keys())
-            values = "', '".join(str(v).replace("'", "''") for v in record.values())  # טיפול בגרש בתוך הערכים
+            values = "', '".join(str(v).replace("'", "''") for v in record.values())  # Escape single quotes in values
 
             insert_query = f"INSERT INTO {table_name} ({columns}) VALUES ('{values}')"
             cursor.execute(insert_query)
@@ -92,11 +91,11 @@ def populate_all_tables():
         return
 
     try:
-        # Populate packages table
+        # Populate the 'packages' table with initial data
         packages_data = load_data_from_file("utils/init_packages_data.json")
         populate_table(connection, "packages", packages_data, "package_name")
 
-        # Populate users table (example data with password validation)
+        # Populate the 'users' table with example data (including password validation)
         users_data = [
             {
                 "id": "user-1",
@@ -147,7 +146,7 @@ def populate_all_tables():
 
         populate_table(connection, "users", users_data, "username")
 
-        # Populate customers table (example data)
+        # Populate the 'customers' table with example data
         customers_data = [
             {
                 "id": "cust-1",
@@ -156,7 +155,7 @@ def populate_all_tables():
                 "phone_number": "555-123-4567",
                 "email_address": "emma.watson@example.com",
                 "address": "12, King's Road, London, UK",
-                "package_id": "pak-3",  # ID לחבילה
+                "package_id": "pak-3",
                 "gender": "Female"
             },
             {
@@ -166,7 +165,7 @@ def populate_all_tables():
                 "phone_number": "555-234-5678",
                 "email_address": "robert.downey@example.com",
                 "address": "33, Sunset Blvd, Los Angeles, CA, USA",
-                "package_id": "pak-2",  # ID לחבילה
+                "package_id": "pak-2",
                 "gender": "Male"
             },
             {
@@ -176,7 +175,7 @@ def populate_all_tables():
                 "phone_number": "555-345-6789",
                 "email_address": "scarlett.johansson@example.com",
                 "address": "44, Park Avenue, New York, NY, USA",
-                "package_id": "pak-1",  # ID לחבילה
+                "package_id": "pak-1",
                 "gender": "Female"
             },
             {
@@ -186,7 +185,7 @@ def populate_all_tables():
                 "phone_number": "555-456-7890",
                 "email_address": "chris.hemsworth@example.com",
                 "address": "55, Oak Street, Sydney, Australia",
-                "package_id": "pak-4",  # ID לחבילה
+                "package_id": "pak-4",
                 "gender": "Male"
             },
             {
@@ -196,7 +195,7 @@ def populate_all_tables():
                 "phone_number": "555-567-8901",
                 "email_address": "zendaya.coleman@example.com",
                 "address": "66, Beverly Hills, California, USA",
-                "package_id": "pak-1",  # ID לחבילה
+                "package_id": "pak-1",
                 "gender": "Female"
             }
         ]

@@ -5,12 +5,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY requirements.txt ./
+COPY requirements.txt ./ 
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy wait-for-it.sh script
-COPY wait-for-it.sh /usr/local/bin/wait-for-it.sh
-RUN chmod +x /usr/local/bin/wait-for-it.sh
 
 # Copy the entire project
 COPY . ./

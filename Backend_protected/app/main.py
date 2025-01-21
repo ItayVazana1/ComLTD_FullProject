@@ -10,7 +10,8 @@ from .routes.audit_logs import router as audit_logs_router
 from .routes.landing_page import router as landing_page_router
 from .routes.contact_us import router as contact_us_router
 from .utils.loguru_config import logger
-
+import time  # For introducing the delay
+from decouple import config  # For loading environment variables
 
 
 # Title: Application Initialization and Route Registration
@@ -23,10 +24,12 @@ def create_application() -> FastAPI:
     :return: Configured FastAPI application instance.
     """
     logger.info("Initializing FastAPI application...")
+
+    # Update OpenAPI title and description
     application = FastAPI(
-        title="Communication LTD API",
+        title="Protected Backend - Communication LTD API",
         version="1.0.0",
-        description="API for managing Communication LTD operations."
+        description="This API serves as the protected backend for managing Communication LTD operations, with added security measures including SQL injection and XSS protection.",
     )
 
     # Include routers for all routes
@@ -36,9 +39,8 @@ def create_application() -> FastAPI:
     application.include_router(audit_logs_router, prefix="/audit-logs", tags=["Audit Logs"])
     application.include_router(landing_page_router, tags=["Landing Pages"])
     application.include_router(contact_us_router, tags=["Contact Us"])
-    
-    
-     # Add CORS middleware
+
+    # Add CORS middleware
     application.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000"],  # Adjust origins as needed
@@ -48,10 +50,9 @@ def create_application() -> FastAPI:
     )
     logger.info("CORS middleware successfully added.")
 
-    
-
     logger.info("Routes successfully registered.")
     return application
+
 
 # Title: Database Initialization
 
@@ -65,16 +66,25 @@ def initialize_database():
         logger.info("Starting database initialization...")
         load_models()
         Base.metadata.create_all(bind=engine)
-        populate_packages()
+        populate_packages()  # This will populate package data into the database
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         raise
 
+
 # Title: Main Application Entry Point
 
 try:
     logger.info("Starting application setup...")
+
+    # Load the delay time from the .env file
+    db_connection_delay = int(config("DB_CONNECTION_DELAY", default=15))  # Delay time in seconds
+
+    # Introducing a delay to ensure the database is ready before the application starts
+    logger.info(f"Waiting for {db_connection_delay} seconds for the database to initialize...")
+    time.sleep(db_connection_delay)
+
     initialize_database()
     app = create_application()
     logger.info("Application setup completed successfully.")

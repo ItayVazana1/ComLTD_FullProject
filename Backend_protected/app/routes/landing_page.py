@@ -10,10 +10,12 @@ from ..utils.attack_detectors import sanitize_input
 
 router = APIRouter()
 
+# Landing Page
 @router.get("/", response_class=HTMLResponse)
 def landing_page():
     """
     Render the landing page with Bootstrap (Dark Theme).
+    Provides quick access to OpenAPI documentation, audit logs, and email testing.
     """
     html_content = """
     <!DOCTYPE html>
@@ -38,10 +40,12 @@ def landing_page():
     """
     return HTMLResponse(content=html_content)
 
+# Page to send a test email
 @router.get("/test-email", response_class=HTMLResponse)
 def test_email_page():
     """
     Render a page to test email sending functionality.
+    Allows users to send a test email to check if email functionality works.
     """
     html_content = """
     <!DOCTYPE html>
@@ -69,10 +73,12 @@ def test_email_page():
     """
     return HTMLResponse(content=html_content)
 
+# Endpoint to handle sending a test email
 @router.post("/send-test-email")
 def send_test_email(email: str = Form(...)):
     """
-    Handle test email sending.
+    Handle sending a test email to the provided email address.
+    Protects against XSS by sanitizing the email input.
     :param email: Email address to send the test email to.
     """
     sanitized_email = sanitize_input(email)  # Protects against XSS
@@ -88,10 +94,12 @@ def send_test_email(email: str = Form(...)):
         logger.error(f"Failed to send test email to {sanitized_email}: {e}")
         return HTMLResponse(content=f"<h1>Failed to send email to {sanitized_email}. Check logs for details.</h1>")
 
+# Page to view and filter audit logs
 @router.get("/audit-logs-view", response_class=HTMLResponse)
 def audit_logs_view():
     """
     Render a page to view and filter Audit Logs.
+    Includes an input field to filter logs by user ID and a table to display the logs.
     """
     html_content = """
     <!DOCTYPE html>
@@ -154,6 +162,7 @@ def audit_logs_view():
     """
     return HTMLResponse(content=html_content)
 
+# Endpoint to get the audit logs with optional user_id filter
 @router.get("/audit-logs")
 def get_audit_logs(user_id: str = None, db: Session = Depends(get_db)):
     """

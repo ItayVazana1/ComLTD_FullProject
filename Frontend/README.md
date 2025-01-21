@@ -1,2 +1,0 @@
-<<<<<<< HEAD
-# Comunication_LTD

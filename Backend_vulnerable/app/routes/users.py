@@ -15,11 +15,13 @@ router = APIRouter()
 def sanitize_query(query: str) -> str:
     """
     Sanitizes an SQL query by removing everything after /* or --.
+    This is a basic sanitization to prevent SQL injection, but it is not foolproof and can still be vulnerable.
     """
-    query = query.split("/*")[0]
-    query = query.split("--")[0]
+    query = query.split("/*")[0]  # Remove comments starting with /*
+    query = query.split("--")[0]  # Remove comments starting with --
     return query.strip()
 
+# Models for the user registration, login, password reset, etc.
 class RegistrationRequest(BaseModel):
     full_name: str
     username: str
@@ -29,16 +31,13 @@ class RegistrationRequest(BaseModel):
     confirm_password: str
     gender: str
     
-    
 class LoginRequest(BaseModel):
     username_or_email: str
     password: str
-    
-    
+
 class LogoutRequest(BaseModel):
     token: str
-    
-    
+
 class UserDetailsResponse(BaseModel):
     id: str
     full_name: str
@@ -50,10 +49,8 @@ class UserDetailsResponse(BaseModel):
     is_active: bool
     gender: str
 
-
 class PasswordResetRequest(BaseModel):
     email: str    
-
 
 class ResetPasswordRequest(BaseModel):
     """Model for changing password (after token)."""
@@ -61,15 +58,13 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
     
-    
 class ChangePasswordAuthenticatedRequest(BaseModel):
     username: str
     current_password: str
     new_password: str
     confirm_password: str
-    
-    
-    
+
+
 @router.post("/register")
 def register(request: RegistrationRequest):
     """
@@ -83,13 +78,16 @@ def register(request: RegistrationRequest):
     try:
         # Generate a unique ID for the user
         user_id = str(uuid.uuid4())
-        
+
+        # Validate passwords match
         if request.password != request.confirm_password:
             raise HTTPException(status_code=400, detail="Passwords do not match")
 
+        # Validate password complexity
         if not validate_password(request.password, user_id):
             raise HTTPException(status_code=400, detail="Password does not meet complexity requirements")
         
+        # Hash the password
         salt, hashed_password = hash_password(request.password)
 
         # First, insert a new user with default values
@@ -109,15 +107,12 @@ def register(request: RegistrationRequest):
             'Other'
         );
         """
-
-        # Execute the insert query
-        query = sanitize_query(query)
+        query = sanitize_query(query)  # Sanitization to prevent SQL injection
         loguru_logger.info(f"Executing query: {query}")
         execute_query(connection, query)
         loguru_logger.info(f"Query executed successfully: {query}")
 
-
-        # Then, update each field with user-provided input
+        # Update user fields with input data
         queries = [
             f"UPDATE users SET full_name = '{request.full_name}' WHERE id = '{user_id}';",
             f"UPDATE users SET username = '{request.username}' WHERE id = '{user_id}';",
@@ -128,15 +123,13 @@ def register(request: RegistrationRequest):
             f"UPDATE users SET salt = '{salt}' WHERE id = '{user_id}';",
             f"UPDATE users SET gender = '{request.gender}' WHERE id = '{user_id}';"
         ]
-
         for q in queries:
             try:
-                q = sanitize_query(q)
+                q = sanitize_query(q)  # Sanitize each query to prevent SQL injection
                 loguru_logger.info(f"Executing query: {q}")
                 execute_query(connection, q)
             except Exception as e:
                 loguru_logger.error(f"Error executing query: {q} - {e}")
-                
                 
         create_audit_log_entry(user_id, "User registered successfully")
 
@@ -149,8 +142,7 @@ def register(request: RegistrationRequest):
     finally:
         connection.close()
 
-        
-        
+
 @router.post("/login")
 def login(request: LoginRequest):
     """
@@ -167,7 +159,7 @@ def login(request: LoginRequest):
         SELECT id, full_name, username, email, phone_number, raw_pass, hashed_password, salt, is_active, is_logged_in, current_token
         FROM users
         WHERE username = '{request.username_or_email}' AND raw_pass = '{request.password}';"""
-        query = sanitize_query(query)
+        query = sanitize_query(query)  # Sanitization to prevent SQL injection
         loguru_logger.info(f"Executing query: {query}")
         user = execute_query(connection, query)
 
@@ -202,8 +194,6 @@ def login(request: LoginRequest):
         connection.close()
 
 
-
-
 @router.post("/logout")
 def logout(request: LogoutRequest):
     """
@@ -221,11 +211,9 @@ def logout(request: LogoutRequest):
         SET is_logged_in = FALSE, current_token = NULL
         WHERE current_token = '{request.token}';
         """
-
-        query = sanitize_query(query)
+        query = sanitize_query(query)  # Sanitization to prevent SQL injection
         loguru_logger.info(f"Executing query: {query}")
         execute_query(connection, query)
-        
 
         loguru_logger.info(f"User successfully logged out. Token invalidated: {request.token}")
         
@@ -254,21 +242,23 @@ def get_user_details(token: str):
     :return: User details including ID, full name, email, phone number, and login status.
     """
     
+    # Creating an audit log entry for the attempted user details fetch
     create_audit_log_entry("unknown", f"Attempted to fetch user details with token: {token}")
 
-
+    # Creating a database connection
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # Fetch user details using raw query
+        # SQL query to fetch user details (vulnerable to SQL Injection)
         query = f"""
         SELECT id, full_name, username, email, phone_number, last_login, is_logged_in, is_active, gender
         FROM users
         WHERE current_token = '{token}' AND is_logged_in = TRUE;
         """
 
+        # Sanitizing the query (not a true protection against SQL injection)
         query = sanitize_query(query)
         loguru_logger.info(f"Executing query: {query}")
         user = execute_query(connection, query)
@@ -300,6 +290,8 @@ def get_user_details(token: str):
 
     finally:
         connection.close()
+        
+        
 
 
 @router.post("/ask-for-password-reset")
@@ -314,12 +306,13 @@ def request_password_reset(request: PasswordResetRequest):
     
     loguru_logger.info(f"Password reset request received for: {request.email}")
 
+    # Creating a database connection
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # Query user directly without validation or sanitization
+        # Direct SQL query without validation or sanitization (vulnerable to SQL Injection)
         query = f"SELECT * FROM users WHERE email = '{request.email}'"
         query = sanitize_query(query)
         user = fetch_results(connection, query)
@@ -383,7 +376,9 @@ def request_password_reset(request: PasswordResetRequest):
 
     finally:
         connection.close()
-
+        
+        
+        
 @router.post("/confirm-reset-password")
 def confirm_reset_password(request: ResetPasswordRequest):
     """
@@ -393,6 +388,7 @@ def confirm_reset_password(request: ResetPasswordRequest):
     :return: A success message upon successful password reset.
     """
     
+    # Log the attempt to confirm password reset
     create_audit_log_entry("unknown", f"Attempted to confirm password reset with token: {request.reset_token}")
     
     loguru_logger.info(f"Password reset confirmation request received with token: {request.reset_token}")
@@ -468,9 +464,8 @@ def confirm_reset_password(request: ResetPasswordRequest):
 
     finally:
         connection.close()
-        
-        
-        
+
+
 @router.post("/change-password-authenticated")
 def change_password_authenticated(request: ChangePasswordAuthenticatedRequest):
     """

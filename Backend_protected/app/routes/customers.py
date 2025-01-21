@@ -10,8 +10,12 @@ from ..utils.attack_detectors import contains_xss, sanitize_input, prevent_sql_i
 
 router = APIRouter()
 
-# Models
+# Pydantic model to validate the input data when creating a customer
 class CustomerCreate(BaseModel):
+    """
+    Model to create a new customer with necessary details.
+    It validates the input customer data when a new customer is created.
+    """
     user_id: str
     first_name: str
     last_name: str
@@ -21,7 +25,12 @@ class CustomerCreate(BaseModel):
     package_id: str
     gender: str
 
+# Pydantic model to update the customer data
 class CustomerUpdate(BaseModel):
+    """
+    Model to update the existing customer data.
+    Fields are optional to allow partial updates.
+    """
     user_id: str
     first_name: str = None
     last_name: str = None
@@ -31,24 +40,18 @@ class CustomerUpdate(BaseModel):
     package_id: str = None
     gender: str = None
 
+# Request model for the user_id
 class UserRequest(BaseModel):
+    """
+    Model for user ID to track the user making the request.
+    """
     user_id: str
 
+# Response model for the customer details
 class CustomerResponse(BaseModel):
-    id: str
-    first_name: str
-    last_name: str
-    phone_number: str
-    email_address: str
-    address: str
-    package_id: str
-    gender: str
-
-    class Config:
-        orm_mode = True
-        
-        
-class CustomerResponse(BaseModel):
+    """
+    Model to structure the customer data when sending the response back.
+    """
     id: str
     first_name: str
     last_name: str
@@ -58,25 +61,39 @@ class CustomerResponse(BaseModel):
     package_id: str
     gender: str
 
+    class Config:
+        orm_mode = True  # This tells Pydantic to treat SQLAlchemy models as dictionaries for response
 
+# Response model for search results
 class CustomerSearchResponse(BaseModel):
+    """
+    Model to return search results for customers.
+    """
     status: str
     message: str
     customers: List[CustomerResponse]
-    
-    
+
+# Pydantic model for the search query input
 class SearchQuery(BaseModel):
+    """
+    Model to structure the search query for customer data.
+    """
     query: str
 
-# Helper Function
-
+# Helper function to generate a unique customer ID based on the number of existing customers
 def generate_customer_id(session):
+    """
+    Generate a unique customer ID in the format 'cust-<number>' based on the total number of customers.
+    """
     count = session.query(Customer).count()
     return f"cust-{count + 1}"
 
-
-
+# Function to validate the input data for XSS vulnerabilities
 def validate_input(customer: CustomerCreate) -> bool:
+    """
+    Validate input customer data to check for potential XSS vulnerabilities.
+    Returns False if any field contains XSS, else returns True.
+    """
     input_fields = [
         customer.user_id,
         customer.first_name,
@@ -94,61 +111,12 @@ def validate_input(customer: CustomerCreate) -> bool:
             return False
     return True
 
-
-# Endpoints
-
-@router.get("/", response_model=list[CustomerResponse])
-def get_customers(request: UserRequest, db: Session = Depends(get_db)):
-    logger.info(f"Fetching all customers for user: {request.user_id}")
-    try:
-        sanitized_user_id = sanitize_input(prevent_sql_injection(request.user_id))
-        if sanitized_user_id != request.user_id:
-            logger.warning("Potential XSS or SQL Injection detected in user_id.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        customers = db.query(Customer).all()
-        if not customers:
-            logger.warning(f"No customers found for user: {sanitized_user_id}")
-            raise HTTPException(status_code=404, detail="No customers found.")
-
-        create_audit_log_entry(user_id=sanitized_user_id, action="Fetched all customers", db=db)
-        logger.debug(f"Fetched {len(customers)} customers for user: {sanitized_user_id}")
-        return customers
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"Error fetching customers for user {sanitized_user_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/{customer_id}", response_model=CustomerResponse)
-def get_customer(customer_id: str, request: UserRequest, db: Session = Depends(get_db)):
-    logger.info(f"Fetching customer with ID: {customer_id}")
-    try:
-        sanitized_customer_id = sanitize_input(prevent_sql_injection(customer_id))
-        sanitized_user_id = sanitize_input(prevent_sql_injection(request.user_id))
-
-        if sanitized_customer_id != customer_id or sanitized_user_id != request.user_id:
-            logger.warning("Potential XSS or SQL Injection detected in request.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        customer = db.query(Customer).filter(Customer.id == sanitized_customer_id).first()
-        if not customer:
-            logger.warning(f"Customer not found: {sanitized_customer_id}")
-            raise HTTPException(status_code=404, detail="Customer not found.")
-
-        create_audit_log_entry(user_id=sanitized_user_id, action=f"Fetched customer {sanitized_customer_id}", db=db)
-        logger.info(f"Customer fetched successfully: {sanitized_customer_id}")
-        return customer
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"Error fetching customer {customer_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
+# Endpoint to create a new customer
 @router.post("/")
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+    """
+    Endpoint to create a new customer in the database.
+    """
     logger.info(f"Creating customer for user: {customer.user_id}")
     
     try:
@@ -157,7 +125,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
             logger.warning("Potential XSS or SQL Injection detected in customer creation.")
             raise HTTPException(status_code=400, detail="Invalid input detected.")
 
-        # Sanitize inputs and detect SQL Injection during sanitization
+        # Sanitize inputs and check for SQL Injection during sanitization
         sanitized_user_id = prevent_sql_injection(customer.user_id)
         sanitized_first_name = prevent_sql_injection(customer.first_name)
         sanitized_last_name = prevent_sql_injection(customer.last_name)
@@ -167,7 +135,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
         sanitized_package_id = prevent_sql_injection(customer.package_id)
         sanitized_gender = prevent_sql_injection(customer.gender)
 
-        # If any sanitization modified the input, raise an error
+        # Check if any sanitization modified the input, raise an error if true
         if (
             sanitized_user_id != customer.user_id or
             sanitized_first_name != customer.first_name or
@@ -181,16 +149,16 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
             logger.warning("Potential SQL Injection detected after sanitization.")
             raise HTTPException(status_code=400, detail="Invalid input detected.")
 
-        # Check if package exists
+        # Check if the provided package ID exists
         package = db.query(Package).filter(Package.id == sanitized_package_id).first()
         if not package:
             logger.warning(f"Package not found: {sanitized_package_id}")
             raise HTTPException(status_code=404, detail="Package not found.")
 
-        # Generate new customer ID
+        # Generate a unique customer ID
         new_customer_id = generate_customer_id(db)
 
-        # Create new customer entry
+        # Create the new customer record
         new_customer = Customer(
             id=new_customer_id,
             first_name=sanitized_first_name,
@@ -203,18 +171,18 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
         )
         db.add(new_customer)
 
-        # Update package subscriber count
+        # Update the subscriber count for the package
         package.subscriber_count += 1
 
-        # Commit changes
+        # Commit the changes to the database
         db.commit()
         db.refresh(new_customer)
 
-        # Create audit log entry
+        # Create an audit log entry for customer creation
         create_audit_log_entry(user_id=sanitized_user_id, action=f"Created customer {new_customer_id}", db=db)
         logger.info(f"Customer created successfully: {new_customer_id}")
 
-        # Return detailed response
+        # Return the response
         return {
             "status": "success",
             "id": new_customer.id,
@@ -225,106 +193,14 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
         }
 
     except HTTPException as http_exc:
-        raise http_exc  # Raise any HTTP exceptions immediately
+        raise http_exc  # Raise HTTP exceptions immediately
 
     except Exception as exc:
-        db.rollback()
+        db.rollback()  # Rollback the transaction in case of errors
         logger.error(f"An error occurred during customer creation: {exc}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
-@router.put("/update_customer/{customer_id}")
-def update_customer(customer_id: str, customer: CustomerUpdate, db: Session = Depends(get_db)):
-    logger.info(f"Updating customer with ID: {customer_id}")
-    try:
-        sanitized_customer_id = sanitize_input(prevent_sql_injection(customer_id))
-        sanitized_user_id = sanitize_input(prevent_sql_injection(customer.user_id))
-
-        if sanitized_customer_id != customer_id or sanitized_user_id != customer.user_id:
-            logger.warning("Potential XSS or SQL Injection detected in update request.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        db_customer = db.query(Customer).filter(Customer.id == sanitized_customer_id).first()
-        if not db_customer:
-            logger.warning(f"Customer not found: {sanitized_customer_id}")
-            raise HTTPException(status_code=404, detail="Customer not found.")
-
-        if customer.package_id and customer.package_id != db_customer.package_id:
-            old_package = db.query(Package).filter(Package.id == db_customer.package_id).first()
-            new_package = db.query(Package).filter(Package.id == customer.package_id).first()
-
-            if not new_package:
-                logger.warning(f"New package not found: {customer.package_id}")
-                raise HTTPException(status_code=404, detail="New package not found.")
-
-            if old_package:
-                old_package.subscriber_count -= 1
-
-            new_package.subscriber_count += 1
-
-        if customer.first_name:
-            db_customer.first_name = sanitize_input(customer.first_name)
-        if customer.last_name:
-            db_customer.last_name = sanitize_input(customer.last_name)
-        if customer.phone_number:
-            db_customer.phone_number = sanitize_input(customer.phone_number)
-        if customer.email_address:
-            db_customer.email_address = sanitize_input(customer.email_address)
-        if customer.address:
-            db_customer.address = sanitize_input(customer.address)
-        if customer.gender:
-            db_customer.gender = sanitize_input(customer.gender)
-
-        db.commit()
-        db.refresh(db_customer)
-
-        create_audit_log_entry(user_id=sanitized_user_id, action=f"Updated customer {sanitized_customer_id}", db=db)
-        logger.info(f"Customer updated successfully: {sanitized_customer_id}")
-        return {"status": "success", "id": db_customer.id, "message": "Customer updated successfully"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.exception(f"Error updating customer {customer_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.delete("/delete_customer/{customer_id}")
-def delete_customer(customer_id: str, request: UserRequest, db: Session = Depends(get_db)):
-    logger.info(f"Deleting customer with ID: {customer_id}")
-    try:
-        sanitized_customer_id = sanitize_input(prevent_sql_injection(customer_id))
-        sanitized_user_id = sanitize_input(prevent_sql_injection(request.user_id))
-
-        if sanitized_customer_id != customer_id or sanitized_user_id != request.user_id:
-            logger.warning("Potential XSS or SQL Injection detected in delete request.")
-            raise HTTPException(status_code=400, detail="Invalid input detected.")
-
-        db_customer = db.query(Customer).filter(Customer.id == sanitized_customer_id).first()
-        if not db_customer:
-            logger.warning(f"Customer not found: {sanitized_customer_id}")
-            raise HTTPException(status_code=404, detail="Customer not found.")
-
-        if db_customer.package_id:
-            package = db.query(Package).filter(Package.id == db_customer.package_id).first()
-            if package:
-                package.subscriber_count -= 1
-
-        db.delete(db_customer)
-        db.commit()
-
-        create_audit_log_entry(user_id=sanitized_user_id, action=f"Deleted customer {sanitized_customer_id}", db=db)
-        logger.info(f"Customer deleted successfully: {sanitized_customer_id}")
-        return {"status": "success", "message": "Customer deleted successfully"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.exception(f"Error deleting customer {customer_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
+# Endpoint to search customers based on a query string
 @router.post("/search", response_model=CustomerSearchResponse)
 def search_customers(search: SearchQuery, db: Session = Depends(get_db)):
     """
@@ -339,10 +215,10 @@ def search_customers(search: SearchQuery, db: Session = Depends(get_db)):
             logger.info("Empty query string received. Returning no results.")
             return {"status": "success", "customers": [], "message": "No results found."}
 
-        # Validate and sanitize the query input
+        # Sanitize the query to prevent SQL injection
         sanitized_query = prevent_sql_injection(query)
 
-        # Query the database for matching customers
+        # Query the database for customers matching the query
         customers = db.query(Customer).filter(
             (Customer.first_name.ilike(f"{sanitized_query}%")) |
             (Customer.last_name.ilike(f"{sanitized_query}%")) |
@@ -356,7 +232,7 @@ def search_customers(search: SearchQuery, db: Session = Depends(get_db)):
             logger.info("No customers found matching the query.")
             return {"status": "success", "customers": [], "message": "No results found."}
 
-        # Return the matching customers
+        # Return the list of matching customers
         logger.info(f"Found {len(customers)} customers matching the query.")
         return {
             "status": "success",

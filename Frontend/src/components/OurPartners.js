@@ -1,12 +1,15 @@
 import React from 'react';
-import '../assets/styles/Global.css';
-import '../assets/styles/About.css';
+import '../assets/styles/Global.css'; // Global styles
+import '../assets/styles/About.css'; // Styles specific to the About page
 
 /**
  * OurPartners Component:
- * Displays a list of partner logos in a horizontal layout.
- * - Accepts an array of partners as a prop.
- * - Each partner includes a name and an image.
+ * Renders a section displaying partner logos in a horizontal layout.
+ * 
+ * Props:
+ * - partners (Array): An array of partner objects, each containing:
+ *   - name (string): The name of the partner.
+ *   - image (string): The URL of the partner's logo.
  */
 function OurPartners({ partners }) {
   return (
@@ -14,19 +17,23 @@ function OurPartners({ partners }) {
       {/* Section Title */}
       <h5 id="our-partners-title">Our Partners:</h5>
 
-      {/* Partners Logo Container */}
+      {/* Container for Partner Logos */}
       <div
         id="partners-container"
         className="rectangle-container d-flex gap-3 justify-content-between align-items-center"
       >
+        {/* Iterate over the partners array to display each logo */}
         {partners.map((partner, index) => (
           <img
-            key={index}
+            key={index} // Unique key for React rendering
             id={`partner-logo-${index}`} // Unique ID for each partner logo
-            src={partner.image}
-            alt={partner.name}
-            className="img-fluid"
-            style={{ maxHeight: '80px', objectFit: 'cover' }}
+            src={partner.image} // Logo image URL
+            alt={partner.name} // Alternative text for accessibility
+            className="img-fluid" // Responsive image class
+            style={{
+              maxHeight: '80px', // Restrict height to maintain uniformity
+              objectFit: 'cover', // Ensure the image scales proportionally
+            }}
           />
         ))}
       </div>

@@ -12,27 +12,27 @@ def setup_loguru():
 
     # Add console handler
     logger.add(
-        sys.stdout,
+        sys.stdout,  # Direct the log output to the console
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | "
-               "<magenta>{name}</magenta>:<light-magenta>{function}</light-magenta>:<light-yellow>{line}</light-yellow> | <level>{message}</level>",
-        level="DEBUG",  # Console log level
-        colorize=True,
+               "<magenta>{name}</magenta>:<light-magenta>{function}</light-magenta>:<light-yellow>{line}</light-yellow> | <level>{message}</level>",  # Define log format
+        level="DEBUG",  # Console log level (shows all logs from DEBUG level and above)
+        colorize=True,  # Enable colored output for better readability
     )
 
     # Directory for log files
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)  # Ensure the logs directory exists
+    log_dir = "logs"  # Set the log directory path
+    os.makedirs(log_dir, exist_ok=True)  # Ensure the logs directory exists (create if not)
 
     # Add file handler
     logger.add(
-        os.path.join(log_dir, "app_{time:YYYY-MM-DD}.log"),
+        os.path.join(log_dir, "app_{time:YYYY-MM-DD}.log"),  # Log file with daily rotation based on date
         rotation="1 day",  # Create a new log file every day
-        retention="7 days",  # Keep logs for 7 days
-        compression="zip",  # Compress old logs
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}",
-        level="INFO",  # File log level
+        retention="7 days",  # Keep logs for 7 days before deletion
+        compression="zip",  # Compress old logs to save space
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}",  # Log format for file
+        level="INFO",  # File log level (logs from INFO level and above)
     )
 
-    return logger
+    return logger  # Return the configured logger
 
-loguru_logger = setup_loguru()
+loguru_logger = setup_loguru()  # Initialize the Loguru logger with the defined settings

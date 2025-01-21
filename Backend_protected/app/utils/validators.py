@@ -1,15 +1,19 @@
-from sqlalchemy.orm import Session
-from ..models.tables import User
 import re
 import hashlib
 import os
 import json
 from decouple import config
+from sqlalchemy.orm import Session
+from ..models.tables import User
 from ..utils.loguru_config import logger
 
 def validate_password(password: str, user_id: str, db_session: Session, password_history: list = None) -> bool:
     """
     Validates a password against rules and history.
+    
+    This function checks if the given password meets complexity requirements,
+    whether it matches any previously used passwords, and if the password is valid
+    according to predefined rules (length, special characters, etc.).
 
     :param password: The password to validate.
     :param user_id: The ID of the user to fetch password history from the database.
@@ -79,14 +83,12 @@ def validate_password(password: str, user_id: str, db_session: Session, password
     logger.info("Password passed all validation checks.")
     return True
 
-
-
-
-
-
 def hash_password(password: str) -> tuple:
     """
     Hashes the password using HMAC with a unique salt.
+
+    This function generates a cryptographic hash of the password using a random salt
+    and HMAC (Hash-based Message Authentication Code) with a specified number of iterations.
 
     :param password: The password to hash.
     :return: A tuple containing the salt and the hashed password.
@@ -112,6 +114,9 @@ def hash_password(password: str) -> tuple:
 def verify_password(provided_password: str, stored_salt: str, stored_hash: str) -> bool:
     """
     Verifies if the provided password matches the stored hash using the stored salt.
+
+    This function takes the user's provided password, combines it with the stored salt,
+    and checks if the resulting hash matches the stored hash.
 
     :param provided_password: The password provided by the user.
     :param stored_salt: The salt stored in the database (hex format).
@@ -140,6 +145,8 @@ def check_login_attempts(failed_attempts: int) -> bool:
     """
     Checks if the number of failed login attempts exceeds the limit.
 
+    This function ensures that a user is locked out after exceeding a set number of failed login attempts.
+
     :param failed_attempts: The current number of failed login attempts.
     :return: True if the user should be locked, False otherwise.
     """
@@ -149,6 +156,9 @@ def check_login_attempts(failed_attempts: int) -> bool:
 def update_password_history(user_id: str, new_password: str, db_session: Session) -> None:
     """
     Updates the password history for a user in the database.
+
+    This function adds the new password to the user's password history and ensures that
+    the password history does not exceed the configured limit.
 
     :param user_id: The ID of the user to update.
     :param new_password: The new password to be hashed and added to the history.
@@ -179,4 +189,3 @@ def update_password_history(user_id: str, new_password: str, db_session: Session
 
     db_session.commit()
     logger.info(f"Password history updated successfully for user ID {user_id}.")
-

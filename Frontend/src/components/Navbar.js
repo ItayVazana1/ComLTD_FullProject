@@ -4,25 +4,40 @@ import '../assets/styles/Navbar.css'; // Import custom CSS for Navbar
 /**
  * Navbar Component:
  * Represents the top navigation bar of the application.
- * - Includes a search box for quick input.
- * - Displays the username with a user icon.
- * - Includes a logout button to exit the application.
+ * 
+ * Props:
+ * - username (string): The name of the logged-in user, displayed next to the user icon.
+ * - onLogout (function): Callback function executed when the logout button is clicked.
  */
 function Navbar({ username, onLogout }) {
   return (
-    <header id="navbar" className="navbar d-flex justify-content-between align-items-center p-3">
-      {/* Search box for user input */}
+    <header
+      id="navbar"
+      className="navbar d-flex justify-content-between align-items-center p-3"
+    >
+      {/* Navbar Right Section */}
       <div className="navbar-right d-flex align-items-center">
-        {/* User icon and username */}
-        <div id="user-info" className="user-info d-flex align-items-center me-3">
-          <i className="fa fa-user-circle" aria-hidden="true" id="user-icon"></i>
-          <span id="username-display" className="ms-2">{username}</span>
+        {/* User Information Section */}
+        <div
+          id="user-info"
+          className="user-info d-flex align-items-center me-3"
+        >
+          {/* User Icon */}
+          <i
+            className="fa fa-user-circle" // Font Awesome icon
+            aria-hidden="true" // Accessibility attribute
+            id="user-icon"
+          ></i>
+          {/* Display Username */}
+          <span id="username-display" className="ms-2">
+            {username}
+          </span>
         </div>
-        {/* Logout button */}
+        {/* Logout Button */}
         <button
           id="logout-button"
           className="btn btn-primary logout-btn"
-          onClick={onLogout}
+          onClick={onLogout} // Trigger the onLogout function
         >
           Logout
         </button>

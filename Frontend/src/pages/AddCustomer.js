@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import '../assets/styles/AddCustomer.css';
-import { useUser } from '../context/UserContext'; // Access UserContext
-import { fetchDataPlans, addCustomer } from '../services/api'; // Import relevant API functions
+import '../assets/styles/AddCustomer.css'; // Import CSS for styling
+import { useUser } from '../context/UserContext'; // Access UserContext for user data
+import { fetchDataPlans, addCustomer } from '../services/api'; // Import API functions
 
+/**
+ * AddCustomer Component:
+ * Provides a form to add new customers with dynamic data plans fetched from the server.
+ * @param {Function} onLogout - Function to handle user logout
+ */
 function AddCustomer({ onLogout }) {
-  const { userData } = useUser(); // Access UserContext
+  const { userData } = useUser(); // Access user data from context
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -15,51 +20,65 @@ function AddCustomer({ onLogout }) {
     address: '',
     package_id: '',
     gender: '',
-  });
+  }); // State to manage form input data
 
-  const [packages, setPackages] = useState([]); // State to store package options
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState(''); // Success message
+  const [packages, setPackages] = useState([]); // State to store package options fetched from the server
+  const [error, setError] = useState(''); // State to manage error messages
+  const [successMessage, setSuccessMessage] = useState(''); // State to manage success messages
 
+  /**
+   * Fetch available data plans when the component is mounted
+   */
   useEffect(() => {
-    // Fetch packages from the server
     const fetchPackages = async () => {
       try {
-        const packageData = await fetchDataPlans();
-        setPackages(packageData);
+        const packageData = await fetchDataPlans(); // Fetch plans from the server
+        setPackages(packageData); // Update state with fetched plans
       } catch (error) {
-        console.error('Failed to fetch packages:', error);
+        console.error('Failed to fetch packages:', error); // Log error if fetching fails
       }
     };
 
     fetchPackages();
   }, []);
 
+  /**
+   * Execute scripts if found in the success message
+   */
   useEffect(() => {
     if (successMessage) {
-      // בדיקה אם ההודעה מכילה סקריפט
+      // Check if successMessage contains a <script> tag
       if (successMessage.includes("<script>")) {
         const script = document.createElement("script");
-        const scriptContent = successMessage.match(/<script>(.*?)<\/script>/)?.[1]; // חילוץ התוכן מה-Script
+        const scriptContent = successMessage.match(/<script>(.*?)<\/script>/)?.[1]; // Extract script content
         if (scriptContent) {
           script.innerHTML = scriptContent;
-          document.body.appendChild(script); // הוספת הסקריפט לגוף העמוד
+          document.body.appendChild(script); // Add the script to the document body
         }
       }
     }
   }, [successMessage]);
 
+  /**
+   * Handle input changes for the form fields
+   * @param {Event} e - Input change event
+   */
   const handleChange = (e) => {
     const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
+    setFormData({ ...formData, [id]: value }); // Update formData state
   };
 
+  /**
+   * Handle form submission to add a new customer
+   * @param {Event} e - Form submission event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const { first_name, last_name, phone_number, email_address, address, package_id, gender } =
       formData;
 
+    // Validate required fields
     if (!first_name || !last_name || !phone_number || !email_address || !address || !package_id || !gender) {
       setError('Please fill out all fields.');
       return;
@@ -68,12 +87,15 @@ function AddCustomer({ onLogout }) {
     try {
       const response = await addCustomer({
         ...formData,
-        user_id: userData.id, // Use user ID from UserContext
+        user_id: userData.id, // Include the user ID from context
       });
 
+      // Set success message
       setSuccessMessage(
         `Customer "${response.first_name} ${response.last_name}" added successfully with package ID ${response.package_id}.`
       );
+
+      // Reset form fields
       setFormData({
         first_name: '',
         last_name: '',
@@ -83,10 +105,10 @@ function AddCustomer({ onLogout }) {
         package_id: '',
         gender: '',
       });
-      setError('');
+      setError(''); // Clear any previous errors
     } catch (error) {
-      console.error('Error adding customer:', error);
-      setError('Failed to add customer. Please try again.');
+      console.error('Error adding customer:', error); // Log the error
+      setError('Failed to add customer. Please try again.'); // Set error message
     }
   };
 
@@ -151,7 +173,7 @@ function AddCustomer({ onLogout }) {
               required
             />
 
-            {/* Package */}
+            {/* Package Selection */}
             <select id="package_id" value={formData.package_id} onChange={handleChange} required>
               <option value="" disabled>
                 Select Package
@@ -163,7 +185,7 @@ function AddCustomer({ onLogout }) {
               ))}
             </select>
 
-            {/* Gender */}
+            {/* Gender Selection */}
             <select id="gender" value={formData.gender} onChange={handleChange} required>
               <option value="" disabled>
                 Select Gender
@@ -181,10 +203,11 @@ function AddCustomer({ onLogout }) {
             {error && <div className="alert alert-danger feedback">{error}</div>}
             {successMessage && (
               <div
-              className="alert alert-success feedback"
-              dangerouslySetInnerHTML={{ __html: successMessage }}></div>
-              )}
-              </div>
+                className="alert alert-success feedback"
+                dangerouslySetInnerHTML={{ __html: successMessage }}
+              ></div>
+            )}
+          </div>
         </main>
       </div>
     </div>

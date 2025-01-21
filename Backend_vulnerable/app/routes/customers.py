@@ -6,16 +6,19 @@ from utils.audit_log import create_audit_log_entry
 from datetime import datetime
 import uuid 
 
+# Define a new router for handling customer-related routes
 router = APIRouter()
 
 def sanitize_query(query: str) -> str:
     """
     Sanitizes an SQL query by removing everything after /* or --.
+    This is an attempt to mitigate some SQL injection risks, but it's not foolproof.
     """
     query = query.split("/*")[0]
     query = query.split("--")[0]
     return query.strip()
 
+# Pydantic model for creating a new customer
 class CustomerCreate(BaseModel):
     user_id: str
     first_name: str
@@ -26,9 +29,11 @@ class CustomerCreate(BaseModel):
     package_id: str
     gender: str
 
+# Pydantic model for search queries
 class SearchQuery(BaseModel):
     query: str
 
+# Pydantic model for customer response
 class CustomerResponse(BaseModel):
     id: str
     first_name: str
@@ -44,24 +49,25 @@ class CustomerResponse(BaseModel):
 def create_customer(customer: CustomerCreate):
     """
     Add a new customer to the database. Vulnerable to XSS and SQL Injection attacks.
-
+    Creates a new customer with default values, then updates the fields based on user input.
     :param customer: CustomerCreate containing details about the new customer.
     :return: A success message with the customer's details.
     """
     
+    # Log the action of attempting to create a new customer
     create_audit_log_entry(customer.user_id, "Attempted to create a new customer")
     
     loguru_logger.info(f"Creating customer for user: {customer.user_id}")
 
-    connection = create_connection()
+    connection = create_connection()  # Create a database connection
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # Generate a unique ID for the customer
+        # Generate a unique ID for the customer using UUID
         customer_id = str(uuid.uuid4())
 
-        # Insert customer with default values
+        # Insert customer with default values to initialize the record in the database
         query = f"""
         INSERT INTO customers (id, first_name, last_name, phone_number, email_address, address, package_id, gender)
         VALUES (
@@ -75,9 +81,9 @@ def create_customer(customer: CustomerCreate):
             'Other'
         );
         """
-        query = sanitize_query(query)
+        query = sanitize_query(query)  # Sanitize the query to remove possible malicious content
         loguru_logger.info(f"Executing query: {query}")
-        execute_query(connection, query)
+        execute_query(connection, query)  # Execute the query in the database
         create_audit_log_entry(customer.user_id, f"Default customer created with ID: {customer_id}")
 
         # Update fields with user-provided input
@@ -93,13 +99,14 @@ def create_customer(customer: CustomerCreate):
 
         for update in updates:
             try:
-                update = sanitize_query(update)
+                update = sanitize_query(update)  # Sanitize the update query
                 loguru_logger.info(f"Executing query: {update}")
                 create_audit_log_entry(customer.user_id, f"Field updated successfully: {update}") 
-                execute_query(connection, update)
+                execute_query(connection, update)  # Execute each update query
             except Exception as e:
                 loguru_logger.error(f"Error executing query: {update} - {e}")
                 
+        # Log that the customer was successfully created and return the response
         create_audit_log_entry(customer.user_id, f"Customer created successfully with ID: {customer_id}")
         loguru_logger.info(f"Customer created successfully: {customer_id}")
         
@@ -112,13 +119,14 @@ def create_customer(customer: CustomerCreate):
         }
 
     except Exception as e:
+        # Rollback transaction in case of an error
         connection.rollback()
         create_audit_log_entry(customer.user_id, f"Error creating customer: {e}")
         loguru_logger.error(f"An error occurred during customer creation: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
     finally:
-        connection.close()
+        connection.close()  # Close the database connection after operation is complete
 
 
 
@@ -127,22 +135,23 @@ def search_customers(search: SearchQuery):
     """
     Vulnerable endpoint to search customers by a query string.
     Allows SQL Injection with flexibility for information retrieval.
+    This endpoint allows searching by multiple fields like name, phone, email, etc.
     """
     create_audit_log_entry("unknown", f"Search initiated with query: {search.query.strip()}")
     
-    query = search.query.strip()  # Trim whitespace
+    query = search.query.strip()  # Trim whitespace from the query
     if not query:  # If query is empty, return error
         loguru_logger.warning("Empty query received. Aborting search.")
         return {"status": "error", "message": "Query cannot be empty"}
 
     loguru_logger.info(f"Searching customers with query: {query}")
 
-    connection = create_connection()
+    connection = create_connection()  # Create a database connection
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # Use sanitize_query to manipulate the input for SQL Injection
+        # Sanitize the query to remove any potential harmful SQL injection attempts
         sanitized_query = sanitize_query(query)
         sql_query = f"""
         SELECT id, first_name, last_name, phone_number, email_address, address, package_id, gender
@@ -188,8 +197,8 @@ def search_customers(search: SearchQuery):
 
     except Exception as exc:
         loguru_logger.error(f"An error occurred during customer search: {exc}")
-        create_audit_log_entry("unknown", f"Error during search: {exc}")  # נכון כעת
+        create_audit_log_entry("unknown", f"Error during search: {exc}")  # Log error during search
         raise HTTPException(status_code=500, detail="Internal server error")
 
     finally:
-        connection.close()
+        connection.close()  # Close the database connection after operation is complete

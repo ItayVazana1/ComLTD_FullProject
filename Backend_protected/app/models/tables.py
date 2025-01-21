@@ -18,10 +18,10 @@ def generate_package_id(session: Session):
     :param session: SQLAlchemy session.
     :return: Generated package ID.
     """
-    count = session.query(Package).count()
-    return f"pak-{count + 1}"
+    count = session.query(Package).count()  # Get the count of existing packages
+    return f"pak-{count + 1}"  # Return the new package ID
 
-Base = declarative_base()
+Base = declarative_base()  # Create the base class for all models
 
 # Title: Enumerations
 
@@ -56,20 +56,20 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    full_name = Column(String(255), nullable=False)
-    username = Column(String(255), unique=True, nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    phone_number = Column(String(20), nullable=True)
-    hashed_password = Column(String(255), nullable=False)
-    salt = Column(String(255), nullable=False)  # New column for storing salt
-    password_history = Column(Text, nullable=True)  # JSON-formatted string for password history
-    failed_attempts = Column(Integer, default=0)  # New column for tracking failed login attempts
-    is_active = Column(Boolean, default=True)
-    is_logged_in = Column(Boolean, default=False)
-    current_token = Column(String(255), nullable=True)
-    last_login = Column(DateTime, nullable=True, default=datetime.utcnow)
-    gender = Column(Enum(Gender), nullable=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))  # UUID primary key
+    full_name = Column(String(255), nullable=False)  # User's full name
+    username = Column(String(255), unique=True, nullable=False)  # Unique username
+    email = Column(String(255), unique=True, nullable=False)  # Unique email address
+    phone_number = Column(String(20), nullable=True)  # Phone number (optional)
+    hashed_password = Column(String(255), nullable=False)  # Hashed password for security
+    salt = Column(String(255), nullable=False)  # Salt for password hashing
+    password_history = Column(Text, nullable=True)  # Password history stored in JSON format
+    failed_attempts = Column(Integer, default=0)  # Tracks failed login attempts
+    is_active = Column(Boolean, default=True)  # Account status (active/inactive)
+    is_logged_in = Column(Boolean, default=False)  # Indicates whether the user is logged in
+    current_token = Column(String(255), nullable=True)  # Active token for authentication
+    last_login = Column(DateTime, nullable=True, default=datetime.utcnow)  # Timestamp of the last login
+    gender = Column(Enum(Gender), nullable=True)  # User's gender (using Enum for predefined values)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,16 +92,16 @@ class Customer(Base):
     """
     __tablename__ = "customers"
 
-    id = Column(String(50), primary_key=True)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    phone_number = Column(String(15), nullable=False)
-    email_address = Column(String(100), nullable=False, unique=True)
-    address = Column(Text, nullable=True)
-    package_id = Column(String(50), ForeignKey("packages.id"), nullable=False)
-    gender = Column(String(10), nullable=False)
+    id = Column(String(50), primary_key=True)  # Customer's unique ID
+    first_name = Column(String(50), nullable=False)  # Customer's first name
+    last_name = Column(String(50), nullable=False)  # Customer's last name
+    phone_number = Column(String(15), nullable=False)  # Customer's phone number
+    email_address = Column(String(100), nullable=False, unique=True)  # Unique email address
+    address = Column(Text, nullable=True)  # Customer's address (optional)
+    package_id = Column(String(50), ForeignKey("packages.id"), nullable=False)  # Foreign key to package
+    gender = Column(String(10), nullable=False)  # Gender of the customer
 
-    package = relationship("Package", back_populates="customers")
+    package = relationship("Package", back_populates="customers")  # Relationship with Package table
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -121,13 +121,13 @@ class Package(Base):
     """
     __tablename__ = "packages"
 
-    id = Column(String(50), primary_key=True)
-    package_name = Column(String(50), nullable=False, unique=True)
-    description = Column(Text, nullable=True)
-    monthly_price = Column(Integer, nullable=False)
-    subscriber_count = Column(Integer, default=0)
+    id = Column(String(50), primary_key=True)  # Package's unique ID
+    package_name = Column(String(50), nullable=False, unique=True)  # Package name
+    description = Column(Text, nullable=True)  # Package description (optional)
+    monthly_price = Column(Integer, nullable=False)  # Price of the package per month
+    subscriber_count = Column(Integer, default=0)  # Number of customers subscribed to the package
 
-    customers = relationship("Customer", back_populates="package")
+    customers = relationship("Customer", back_populates="package")  # Relationship with Customer table
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -146,12 +146,12 @@ class AuditLog(Base):
     """
     __tablename__ = "audit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    action = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Auto-incremented primary key
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)  # Foreign key linking to User table
+    action = Column(Text, nullable=False)  # Description of the action
+    timestamp = Column(DateTime, default=datetime.utcnow)  # Timestamp of the action
 
-    user = relationship("User", back_populates="audit_logs")
+    user = relationship("User", back_populates="audit_logs")  # Relationship with User table
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -171,11 +171,11 @@ class ContactSubmission(Base):
     """
     __tablename__ = "contact_submissions"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=False)
-    message = Column(Text, nullable=False)
-    submitted_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))  # UUID primary key
+    name = Column(String(255), nullable=False)  # Submitter's name
+    email = Column(String(255), nullable=False)  # Submitter's email
+    message = Column(Text, nullable=False)  # Submitted message
+    submitted_at = Column(DateTime, default=datetime.utcnow)  # Timestamp of submission
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,14 +195,13 @@ class PasswordReset(Base):
     """
     __tablename__ = "password_resets"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    reset_token = Column(String(255), nullable=False, unique=True)
-    token_expiry = Column(DateTime, nullable=False)
-    used = Column(Boolean, default=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))  # UUID primary key
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)  # Foreign key linking to User table
+    reset_token = Column(String(255), nullable=False, unique=True)  # Unique token for password reset
+    token_expiry = Column(DateTime, nullable=False)  # Expiry date of the reset token
+    used = Column(Boolean, default=False)  # Whether the token has been used
 
-
-    user = relationship("User", back_populates="password_resets")
+    user = relationship("User", back_populates="password_resets")  # Relationship with User table
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -211,10 +210,10 @@ class PasswordReset(Base):
 # Relationships
 
 # Relationship on the User Table
-User.audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+User.audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")  # User to AuditLog relationship
 User.password_resets = relationship(
     "PasswordReset",
     order_by=PasswordReset.id,
     back_populates="user",
     cascade="all, delete-orphan"
-)
+)  # User to PasswordReset relationship

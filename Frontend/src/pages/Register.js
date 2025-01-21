@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../assets/styles/Register.css';
-import { registerUser } from '../services/api'; // Import the API function
+import { useNavigate } from 'react-router-dom'; // For navigation between pages
+import '../assets/styles/Register.css'; // Import CSS for styling
+import { registerUser } from '../services/api'; // API function to register a user
 
+/**
+ * Register Component:
+ * Provides a registration form for new users to create an account.
+ */
 function Register() {
   const navigate = useNavigate(); // Enables navigation between pages
 
+  // State to store the registration form data
   const [formData, setFormData] = useState({
     fullName: '',
     username: '',
@@ -14,30 +19,36 @@ function Register() {
     password: '',
     confirmPassword: '',
     gender: '',
-    acceptTerms: true, // Default value is true since there's a checkbox
+    acceptTerms: true, // Default value for the terms checkbox
   });
 
-  // Error messages mapping
+  // Error messages mapping for specific status codes
   const errorMessages = {
     400: "Invalid input. Please check your details.",
     422: "Missing or invalid fields. Please fill out all required fields.",
     500: "Internal server error. Please try again later.",
   };
 
-  // Update state when input values change
+  /**
+   * Handles input change for form fields
+   * @param {Event} e - Input change event
+   */
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : value, // Update state for text or checkbox inputs
     });
   };
 
-  // Handle form submission
+  /**
+   * Handles form submission to register the user
+   * @param {Event} e - Form submission event
+   */
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent default form submission behavior
+    e.preventDefault(); // Prevent page reload on form submission
 
-    // Convert keys from CamelCase to SnakeCase
+    // Convert keys from CamelCase to SnakeCase for the API request
     const snakeCaseFormData = {
       full_name: formData.fullName,
       username: formData.username,
@@ -50,15 +61,14 @@ function Register() {
     };
 
     try {
-      // Use the API function for registration
-      await registerUser(snakeCaseFormData);
-      navigate('/login'); // Redirect to login page
+      await registerUser(snakeCaseFormData); // Call API to register the user
+      navigate('/login'); // Redirect to login page upon successful registration
     } catch (error) {
-      // Handle error responses
+      // Handle API errors and display appropriate messages
       const statusCode = error.response?.status || 500;
       const errorMessage =
         errorMessages[statusCode] || "An unexpected error occurred.";
-      alert(errorMessage);
+      alert(errorMessage); // Display error message to the user
     }
   };
 
@@ -73,6 +83,7 @@ function Register() {
           <form id="registration-form" onSubmit={handleSubmit}>
             {/* User Details Section */}
             <div id="user-details" className="user-details">
+              {/* Full Name Input */}
               <div id="name-box" className="input-box">
                 <span id="name-label" className="details">Full Name</span>
                 <input
@@ -85,6 +96,7 @@ function Register() {
                   required
                 />
               </div>
+              {/* Username Input */}
               <div id="username-box" className="input-box">
                 <span id="username-label" className="details">Username</span>
                 <input
@@ -97,6 +109,7 @@ function Register() {
                   required
                 />
               </div>
+              {/* Email Input */}
               <div id="email-box" className="input-box">
                 <span id="email-label" className="details">Email</span>
                 <input
@@ -109,6 +122,7 @@ function Register() {
                   required
                 />
               </div>
+              {/* Phone Number Input */}
               <div id="phone-box" className="input-box">
                 <span id="phone-label" className="details">Phone Number</span>
                 <input
@@ -121,6 +135,7 @@ function Register() {
                   required
                 />
               </div>
+              {/* Password Input */}
               <div id="password-box" className="input-box">
                 <span id="password-label" className="details">Password</span>
                 <input
@@ -133,6 +148,7 @@ function Register() {
                   required
                 />
               </div>
+              {/* Confirm Password Input */}
               <div id="confirm-password-box" className="input-box">
                 <span id="confirm-password-label" className="details">Confirm Password</span>
                 <input

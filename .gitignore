@@ -1,2 +1,38 @@
 # Ignore MySQL temporary files
 mysql_data/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node.js dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing outputs
+coverage/
+
+# Production build
+build/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
+
+# Ignore environment overrides (no local environment files)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore temporary files
+*.swp
+*.swo
+*.tmp

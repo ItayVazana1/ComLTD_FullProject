@@ -6,39 +6,40 @@ from utils.email_util import send_email
 from datetime import datetime
 from db.connection import create_connection
 from utils.audit_log import create_audit_log_entry
-from utils.email_util import send_email
 from typing import List
 
+# Define the router for handling the "Contact Us" and related endpoints
 router = APIRouter()
 
+# Pydantic model to validate the "Contact Us" form submission
 class ContactUsRequest(BaseModel):
     user_id: str
     name: str
     email: str
     message: str
-    send_copy: bool = False
+    send_copy: bool = False  # Flag to send a copy of the email to the user
 
 
-# Define a Pydantic model for request body validation
+# Pydantic model for logging actions
 class AuditLogRequest(BaseModel):
     user_id: str
     action: str
 
 
+# Pydantic model for email sending
 class EmailRequest(BaseModel):
     recipient: List[str]
     subject: str
     body: str
 
 
-
 @router.post("/contact-us-send")
 def contact_us(request: ContactUsRequest):
     """
     Vulnerable endpoint for "Contact Us" form submissions.
-    Allows SQL Injection and XSS by not validating or sanitizing user input.
+    This endpoint is susceptible to both XSS and SQL Injection vulnerabilities as it does not validate or sanitize user input.
 
-    :param request: ContactUsRequest model with form details.
+    :param request: The ContactUsRequest model containing the user's message and details.
     :return: A success message if the email is sent successfully.
     """
     loguru_logger.info(f"Contact us form submitted by {request.name} ({request.email})")
@@ -47,7 +48,7 @@ def contact_us(request: ContactUsRequest):
         # Load admin email (hardcoded for simplicity)
         admin_email = "admin@example.com"
 
-        # Send email to admin
+        # Send email to admin with the contact form details
         send_email(
             recipient=[admin_email],
             subject="New Contact Us Submission",
@@ -77,11 +78,11 @@ def contact_us(request: ContactUsRequest):
         raise HTTPException(status_code=500, detail="Failed to process message")
 
 
-
 @router.get("/", response_class=HTMLResponse)
 def landing_page():
     """
-    Render the landing page with a custom theme (Wine Red and Yellow/Orange buttons).
+    Render the landing page with custom theme (Wine Red and Yellow/Orange buttons).
+    This is the main page users will land on when they visit the site.
     """
     html_content = """
     <!DOCTYPE html>
@@ -176,13 +177,13 @@ def health_check():
     </html>
     """
     return HTMLResponse(content=html_content)
-    
 
 
 @router.get("/test-email", response_class=HTMLResponse)
 def test_email_page():
     """
     Render a page to test email sending functionality with a wine red theme.
+    Provides a form for users to send a test email.
     """
     html_content = """
     <!DOCTYPE html>
@@ -242,11 +243,11 @@ def test_email_page():
     return HTMLResponse(content=html_content)
 
 
-    
 @router.post("/send-test-email", response_class=HTMLResponse)
 def send_test_email(email: str = Form(...)):
     """
     Handle test email sending without sanitization.
+    This endpoint allows sending a test email to the given email address.
     """
     try:
         send_email(
@@ -353,12 +354,11 @@ def send_test_email(email: str = Form(...)):
         return HTMLResponse(content=html_content)
 
 
-
-
 @router.get("/audit-logs-view", response_class=HTMLResponse)
 def audit_logs_view():
     """
     Render a page to view and filter Audit Logs with custom styling and a delete button.
+    This endpoint provides a view to check the actions logged in the system.
     """
     html_content = """
     <!DOCTYPE html>
@@ -471,7 +471,6 @@ def audit_logs_view():
     return HTMLResponse(content=html_content)
 
 
-
 @router.get("/audit-logs")
 def get_audit_logs(user_id: str = None):
     """
@@ -482,13 +481,13 @@ def get_audit_logs(user_id: str = None):
     """
     loguru_logger.info(f"Fetching audit logs with user_id: {user_id or 'All'}")
 
-    # יצירת חיבור לבסיס הנתונים
+    # Create a connection to the database
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # יצירת שאילתה SQL פגיעה ל-SQL Injection
+        # Construct the SQL query with potential for SQL Injection
         if user_id:
             query = f"SELECT id, user_id, action, timestamp FROM audit_logs WHERE user_id = '{user_id}'"
         else:
@@ -509,9 +508,8 @@ def get_audit_logs(user_id: str = None):
     finally:
         if connection:
             connection.close()
-    
-    
-    
+
+
 @router.delete("/audit-logs")
 def delete_audit_logs():
     """
@@ -519,13 +517,13 @@ def delete_audit_logs():
     """
     loguru_logger.info("Deleting all audit logs...")
 
-    # יצירת חיבור לבסיס הנתונים
+    # Create a connection to the database
     connection = create_connection()
     if not connection:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     try:
-        # ביצוע מחיקה של כל הרשומות בטבלת audit_logs
+        # Execute deletion of all entries in the audit_logs table
         query = "DELETE FROM audit_logs"
         loguru_logger.info(f"Executing query: {query}")
         cursor = connection.cursor()
@@ -541,6 +539,3 @@ def delete_audit_logs():
     finally:
         if connection:
             connection.close()
-
-
-#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~
