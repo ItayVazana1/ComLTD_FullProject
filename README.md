@@ -86,7 +86,7 @@ ComLTD_FullProject/
 - [Itay Vazana](https://github.com/ItayVazana1)
 - [Mor Dvash](https://github.com/MorDvash)
 - [Peleg Marelly](https://github.com/PelegMarelly)
-- Maayan Hus
+- [Maayan Huss](https://github.com/MaayanHuss)
 
 ## License
 This project is open-source and available under the [MIT License](LICENSE).
