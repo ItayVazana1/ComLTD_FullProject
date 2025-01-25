@@ -77,7 +77,6 @@ ComLTD_FullProject/
 ├── frontend/              # ReactJS-based user interface
 ├── backend_protected/     # Secure backend implementation
 ├── backend_vulnerable/    # Vulnerable backend implementation
-├── mysql/                 # MySQL database configurations , created at first running
 ├── docker-compose.yml     # Docker setup
 └── init.sql               # initialization of the DB
 ```
