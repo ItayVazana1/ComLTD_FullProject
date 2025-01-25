@@ -99,7 +99,7 @@ def send_test_email(email: str = Form(...)):
 def audit_logs_view():
     """
     Render a page to view and filter Audit Logs.
-    Includes an input field to filter logs by user ID and a table to display the logs.
+    Includes a delete button for secured audit log deletion.
     """
     html_content = """
     <!DOCTYPE html>
@@ -116,7 +116,10 @@ def audit_logs_view():
                 <label for="userIdInput" class="form-label">Filter by User ID</label>
                 <input type="text" id="userIdInput" class="form-control" placeholder="Enter User ID">
             </div>
-            <button class="btn btn-primary mb-4" onclick="filterLogs()">Filter Logs</button>
+            <div class="d-grid gap-2 d-md-flex justify-content-between mb-4">
+                <button class="btn btn-primary" onclick="filterLogs()">Filter Logs</button>
+                <button class="btn btn-danger" onclick="deleteLogs()">Delete All Logs</button>
+            </div>
             <table class="table table-dark table-striped">
                 <thead>
                     <tr>
@@ -154,13 +157,28 @@ def audit_logs_view():
                 fetchLogs(userId || null);
             }
 
-            // Load logs on page load
+            async function deleteLogs() {
+                const confirmation = confirm("Are you sure you want to delete all audit logs?");
+                if (!confirmation) return;
+
+                try {
+                    const response = await fetch('/audit-logs', { method: 'DELETE' });
+                    const result = await response.json();
+                    alert(result.message);
+                    fetchLogs();  // Refresh the logs after deletion
+                } catch (error) {
+                    alert("Failed to delete logs. Check the console for details.");
+                    console.error("Error deleting logs:", error);
+                }
+            }
+
             document.addEventListener("DOMContentLoaded", () => fetchLogs());
         </script>
     </body>
     </html>
     """
     return HTMLResponse(content=html_content)
+
 
 # Endpoint to get the audit logs with optional user_id filter
 @router.get("/audit-logs")
@@ -180,3 +198,22 @@ def get_audit_logs(user_id: str = None, db: Session = Depends(get_db)):
         logs = db.query(AuditLog).all()
         logger.debug(f"Fetched {len(logs)} logs.")
     return [{"id": log.id, "user_id": log.user_id, "action": log.action, "timestamp": log.timestamp} for log in logs]
+
+
+@router.delete("/audit-logs")
+def delete_audit_logs(db: Session = Depends(get_db)):
+    """
+    Delete all audit logs securely from the database.
+    """
+    logger.info("Deleting all audit logs...")
+
+    try:
+        db.query(AuditLog).delete()
+        db.commit()
+        logger.info("All audit logs deleted successfully.")
+        return {"status": "success", "message": "All audit logs deleted successfully."}
+
+    except Exception as e:
+        logger.error(f"Failed to delete audit logs: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete audit logs")
