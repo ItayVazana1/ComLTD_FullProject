@@ -77,21 +77,16 @@ ComLTD_FullProject/
 ├── frontend/              # ReactJS-based user interface
 ├── backend_protected/     # Secure backend implementation
 ├── backend_vulnerable/    # Vulnerable backend implementation
-├── database/              # MySQL database configurations
+├── mysql/                 # MySQL database configurations , created at first running
 ├── docker-compose.yml     # Docker setup
-└── .env                   # Environment variables
+└── init.sql               # initialization of the DB
 ```
 
 ## Authors
 - [Itay Vazana](https://github.com/ItayVazana1)
 - [Mor Dvash](https://github.com/MorDvash)
 - [Peleg Marelly](https://github.com/PelegMarelly)
-- [Maayan Hus]
-
-## Future Enhancements
-- Implement real-time chat for customer support.
-- Add role-based access control for admin users.
-- Expand tests to cover additional attack vectors.
+- Maayan Hus
 
 ## License
 This project is open-source and available under the [MIT License](LICENSE).
