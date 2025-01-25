@@ -84,6 +84,9 @@ ComLTD_FullProject/
 
 ## Authors
 - [Itay Vazana](https://github.com/ItayVazana1)
+- [Mor Dvash](https://github.com/MorDvash)
+- [Peleg Marelly](https://github.com/PelegMarelly)
+- [Maayan Hus]
 
 ## Future Enhancements
 - Implement real-time chat for customer support.
