@@ -47,8 +47,13 @@ This project is a full-stack web application developed for a fictional communica
    - Edit `.env` files in the backend and frontend directories to configure settings like database credentials and API URLs.
 
 3. **Build and run the project**:
+   Windows:
    ```bash
    docker-compose up --build
+   ```
+   Linux:
+   ```bash
+   docker compose up -d
    ```
 
 4. **Access the application**:
