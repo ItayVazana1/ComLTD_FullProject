@@ -335,6 +335,7 @@ def register(request: RegistrationRequest, db: Session = Depends(get_db)):
         # Add the new user to the database and commit
         db.add(new_user)
         db.commit()
+        db.refresh(new_user)  # Ensure new_user.id is available after commit
 
         # Validate the password complexity before finalizing the registration
         if not validate_password(sanitized_password, user_id=new_user.id, db_session=db):
@@ -342,6 +343,9 @@ def register(request: RegistrationRequest, db: Session = Depends(get_db)):
             db.delete(new_user)
             db.commit()
             raise HTTPException(status_code=400, detail="Password does not meet complexity requirements")
+        
+        # Update password history after successful validation
+        update_password_history(new_user.id, sanitized_password, db)
 
         # Create an audit log entry for user registration
         create_audit_log_entry(user_id=new_user.id, action="User registration", db=db)

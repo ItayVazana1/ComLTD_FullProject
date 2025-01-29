@@ -7,6 +7,8 @@ from ..models.database import get_db
 from ..utils.loguru_config import logger
 from ..utils.audit_log import create_audit_log_entry
 from ..utils.attack_detectors import contains_xss, sanitize_input, prevent_sql_injection
+import uuid
+
 
 router = APIRouter()
 
@@ -81,12 +83,12 @@ class SearchQuery(BaseModel):
     query: str
 
 # Helper function to generate a unique customer ID based on the number of existing customers
-def generate_customer_id(session):
-    """
-    Generate a unique customer ID in the format 'cust-<number>' based on the total number of customers.
-    """
-    count = session.query(Customer).count()
-    return f"cust-{count + 1}"
+#def generate_customer_id(session):
+#   """
+#  Generate a unique customer ID in the format 'cust-<number>' based on the total number of customers.
+#    """
+#    count = session.query(Customer).count()
+#    return f"cust-{count + 1}"
 
 # Function to validate the input data for XSS vulnerabilities
 def validate_input(customer: CustomerCreate) -> bool:
@@ -156,7 +158,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Package not found.")
 
         # Generate a unique customer ID
-        new_customer_id = generate_customer_id(db)
+        new_customer_id = str(uuid.uuid4())
 
         # Create the new customer record
         new_customer = Customer(

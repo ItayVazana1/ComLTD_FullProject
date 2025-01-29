@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .models.database import engine, load_models
 from .models.tables import Base
-from .utils.populate import populate_packages
+from .utils.populate import populate_all_tables
 from .routes.users import router as users_router
 from .routes.packages import router as packages_router
 from .routes.customers import router as customers_router
@@ -66,7 +66,7 @@ def initialize_database():
         logger.info("Starting database initialization...")
         load_models()
         Base.metadata.create_all(bind=engine)
-        populate_packages()  # This will populate package data into the database
+        populate_all_tables()  # This will populate package data into the database
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
