@@ -92,7 +92,7 @@ def register(request: RegistrationRequest):
 
         # First, insert a new user with default values
         query = f"""
-        INSERT INTO users (id, full_name, username, email, phone_number, raw_pass, hashed_password, salt, is_active, is_logged_in, gender)
+        INSERT INTO users (id, full_name, username, email, phone_number, raw_pass, hashed_password, salt, is_active, is_logged_in, gender, password_history)
         VALUES (
             '{user_id}',
             'Default Name',
@@ -104,7 +104,8 @@ def register(request: RegistrationRequest):
             'default_salt',
             TRUE,
             FALSE,
-            'Other'
+            'Other',
+            '[]'
         );
         """
         query = sanitize_query(query)  # Sanitization to prevent SQL injection

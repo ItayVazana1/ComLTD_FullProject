@@ -25,7 +25,7 @@ def validate_password(password: str, user_id: str) -> bool:
         # Fetch password history
         query = f"SELECT password_history FROM users WHERE id = '{user_id}'"
         result = fetch_results(connection, query)
-        password_history = json.loads(result[0]['password_history']) if result else []
+        password_history = json.loads(result[0]['password_history']) if result and result[0].get('password_history') else []
 
         # Check if the password has been used before
         for old_password in password_history:
@@ -150,7 +150,7 @@ def update_password_history(user_id: str, new_password: str):
         # Fetch password history using fetch_results from connection.py
         query = f"SELECT password_history FROM users WHERE id = '{user_id}'"
         result = fetch_results(connection, query)
-        password_history = json.loads(result[0]) if result and result[0] else []
+        password_history = json.loads(result[0]['password_history']) if result and result[0].get('password_history') else []
 
         # Add the new password
         salt, hashed_password = hash_password(new_password)
@@ -166,10 +166,11 @@ def update_password_history(user_id: str, new_password: str):
         query_update = f"""
         UPDATE users
         SET password_history = '{json.dumps(password_history)}',
-            salt = '{salt}',
-            hashed_password = '{hashed_password}'
+        salt = '{salt}',
+        hashed_password = '{hashed_password}'
         WHERE id = '{user_id}'
         """
+
         execute_query(connection, query_update)
         loguru_logger.info(f"Password history updated successfully for user ID {user_id}.")
 
