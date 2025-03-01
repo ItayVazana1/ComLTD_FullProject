@@ -1,97 +1,151 @@
 
-# ComLTD Web Application Project
+# 🛡️ ComLTD Web Application - Secure vs Vulnerable Full-Stack Project
 
-## Overview
-This project is a full-stack web application developed for a fictional communication company, **ComLTD**, which markets internet data packages. The application demonstrates secure and vulnerable implementations of backend systems, showcasing how to mitigate attacks like SQL Injection and XSS. It includes functionalities such as user registration, login, password recovery, and managing customer information.
+## 📖 Overview
+**ComLTD** is a fictional communication company offering internet data packages, serving as the backdrop for this **full-stack web application project**.  
+The project’s unique purpose is to demonstrate **secure development practices** alongside **common web vulnerabilities**, including **SQL Injection** and **XSS (Cross-Site Scripting)**.
 
-## Project Structure
-- **Frontend**: Built with ReactJS, providing an interactive and dynamic user experience.
-- **Backend**: Developed using FastAPI in Python with two versions:
-  - **Protected Backend**: Implements security measures against SQL Injection and XSS using SQLAlchemy and input sanitization.
-  - **Vulnerable Backend**: Lacks security measures to demonstrate vulnerabilities.
-- **Database**: MySQL relational database for storing user, customer, and package data.
-- **Docker**: Used for containerization, ensuring consistent environments across development and deployment.
+This dual-backend architecture provides both:
+- ✅ **Protected Backend:** Secure implementation with input sanitization, parameterized queries, and validation.
+- ❌ **Vulnerable Backend:** An intentionally flawed implementation to demonstrate how common attacks can exploit insecure code.
 
-## Features
-### User Management
-- **Register**: User registration with validation and email verification.
-- **Login**: Authenticate users with email/username and password.
-- **Password Recovery**: Email-based token verification for resetting passwords.
+This project reflects **secure coding principles**, **vulnerability exploitation scenarios**, and **full-stack development skills**, combining **ReactJS, FastAPI, MySQL, and Docker**.
 
-### Customer Management
-- Add, update, and delete customers with details like name, email, phone, and chosen package.
+---
 
-### Security Demonstrations
-- **SQL Injection**: Demonstrated on registration, login, and customer search endpoints.
-- **XSS (Stored and Reflected)**: Demonstrated on user inputs in the registration and customer management forms.
+## 🎯 Key Learning Objectives
+- ✅ Understanding and implementing **secure coding best practices**.
+- ✅ Simulating and demonstrating **real-world web attacks**.
+- ✅ Applying **full-stack development principles** in a real environment.
+- ✅ Building containerized applications for **consistent deployment**.
 
-### Additional Pages
-- **Packages Page**: View available data packages.
-- **About Us Page**: Company details.
-- **Contact Us Page**: Email-based communication form.
+---
 
-## Technologies Used
-- **Frontend**: ReactJS, HTML, CSS
-- **Backend**: FastAPI, Python, SQLAlchemy (protected backend), MySQL-Connector (vulnerable backend)
-- **Database**: MySQL
-- **Containerization**: Docker with Docker Compose
+## 🏗️ Project Architecture
 
-## Installation and Usage
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/ItayVazana1/ComLTD_FullProject.git
-   cd ComLTD_FullProject
-   ```
+| Layer        | Technology      | Description |
+|--------------|----------------|-------------|
+| **Frontend** | ReactJS         | Interactive UI with dynamic forms, package browsing, and customer management |
+| **Backend**  | FastAPI (Python) | Two versions: Secure & Vulnerable |
+| **Database** | MySQL            | Persistent relational data storage |
+| **Containerization** | Docker & Docker Compose | Environment consistency and simplified deployment |
 
-2. **Set up environment variables**:
-   - Edit `.env` files in the backend and frontend directories to configure settings like database credentials and API URLs.
+---
 
-3. **Build and run the project**:
-   
-   Windows:
-   ```bash
-   docker-compose up --build
-   ```
-   Linux:
-   ```bash
-   docker compose up -d
-   ```
+## 🛠️ Core Features
 
-4. **Access the application**:
-   - **Frontend**: [http://localhost:3000](http://localhost:3000)
-   - **Protected Backend**: [http://localhost:10000](http://localhost:10000)
-   - **Vulnerable Backend**: [http://localhost:11000](http://localhost:11000)
+### 🔐 Secure Features (Protected Backend)
+- **User Registration & Login:** With **hashed passwords** and input sanitization.
+- **Password Recovery:** Email-based token system for secure resets.
+- **Customer Management:** Add, edit, delete customers safely.
+- **Data Packages Display:** Browse company offerings.
+- **Contact Form:** Secure user feedback with email notification.
 
-## Testing Scenarios
-### SQL Injection
-- **Register**: Inject malicious SQL commands in the username or email fields.
-- **Login**: Bypass authentication using SQL injection.
-- **Search Customer**: Retrieve unauthorized data via injected queries.
+### 🚨 Vulnerability Demonstrations (Vulnerable Backend)
+- **SQL Injection:** Direct string concatenation allowing injection in:
+    - Registration
+    - Login
+    - Customer Search
+- **Stored & Reflected XSS:** Malicious scripts stored in:
+    - Customer Details
+    - User Registration Form
 
-### XSS
-- **Register**: Inject scripts into input fields, stored in the database.
-- **Add New Customer**: Inject malicious scripts into customer data fields.
+---
 
-### Security Measures (Protected Backend)
-- Input sanitization with SQLAlchemy and regex-based filtering.
-- Use of parameterized queries and prepared statements.
-- Immediate rejection of suspicious input with detailed logging.
+## 🔎 Security Demonstration Scenarios
 
-## File Structure
+| Attack Type | Scenario | Impact |
+|---|---|---|
+| **SQL Injection** | Bypass login by injecting OR-based queries | Gain unauthorized access |
+| **SQL Injection** | Inject UNION query into customer search | Extract sensitive data |
+| **Stored XSS** | Inject `<script>` tags in customer names | Persistent script execution |
+| **Reflected XSS** | Inject payload in URL query parameters | Immediate script execution |
+
+---
+
+## 🐳 Deployment Instructions
+
+1️⃣ **Clone Repository**
+```bash
+git clone https://github.com/ItayVazana1/ComLTD_FullProject.git
+cd ComLTD_FullProject
+```
+
+2️⃣ **Configure Environment**
+- Set database credentials and backend URLs in `.env` files (frontend & backend).
+
+3️⃣ **Launch with Docker Compose**
+```bash
+docker-compose up --build
+```
+4️⃣ **Access Application**
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- **Protected Backend:** [http://localhost:10000](http://localhost:10000)
+- **Vulnerable Backend:** [http://localhost:11000](http://localhost:11000)
+
+---
+
+## 📂 Project Structure
+
 ```
 ComLTD_FullProject/
-├── frontend/              # ReactJS-based user interface
-├── backend_protected/     # Secure backend implementation
-├── backend_vulnerable/    # Vulnerable backend implementation
-├── docker-compose.yml     # Docker setup
-└── init.sql               # initialization of the DB
+├── frontend/              # ReactJS frontend
+├── backend_protected/     # Secure FastAPI backend
+├── backend_vulnerable/    # Vulnerable FastAPI backend
+├── docker-compose.yml     # Docker configuration
+└── init.sql                # Initial MySQL schema & data
 ```
 
-## Authors
-- [Itay Vazana](https://github.com/ItayVazana1)
-- [Mor Dvash](https://github.com/MorDvash)
-- [Peleg Marelly](https://github.com/PelegMarelly)
-- [Maayan Huss](https://github.com/MaayanHuss)
+---
 
-## License
-This project is open-source and available under the [MIT License](LICENSE).
+## 🛡️ Secure Coding Practices (Protected Backend Highlights)
+
+- ✅ **Input Validation & Sanitization**
+- ✅ **Use of Parameterized Queries (SQLAlchemy)**
+- ✅ **Password Hashing & Secure Storage**
+- ✅ **Cross-Origin Resource Sharing (CORS) Controls**
+- ✅ **Centralized Error Handling & Logging**
+
+---
+
+## 🚨 Key Security Risks Highlighted (Vulnerable Backend)
+
+| Risk | Description |
+|---|---|
+| **SQL Injection** | Dynamic queries without sanitization |
+| **XSS** | Direct rendering of unsanitized user input |
+| **Weak Authentication** | No hashing or token expiration enforcement |
+
+---
+
+## 🔬 Key Technologies
+
+| Layer | Tools |
+|---|---|
+| **Frontend** | ReactJS, HTML, CSS |
+| **Backend** | FastAPI (Python), SQLAlchemy (secure), MySQL-Connector (vulnerable) |
+| **Database** | MySQL |
+| **Containerization** | Docker, Docker Compose |
+
+---
+
+## 💼 Key Takeaways
+
+This project showcases:
+- ✅ My ability to build **full-stack web applications**.
+- ✅ My understanding of **web security vulnerabilities**.
+- ✅ My proficiency in **ReactJS, FastAPI, and Docker**.
+- ✅ My analytical thinking in identifying & mitigating risks.
+- ✅ My experience balancing **functionality, usability, and security**.
+
+---
+
+## 👤 About the Author
+
+**Itay Vazana**  
+Aspiring Full-Stack Developer & Security Enthusiast  
+🔗 [GitHub Profile](https://github.com/ItayVazana1)
+
+---
+
+## ⭐️ If you found this project valuable, please consider starring the repository!
